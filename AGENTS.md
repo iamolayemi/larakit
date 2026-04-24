@@ -210,8 +210,9 @@ echo "APP=blog" > /var/www/blog/.larakit
 
 ### Bootstrap header (every module and manage script)
 
-Every script is self-contained — it loads libs from local disk if available, otherwise downloads
-from GitHub. This pattern must be preserved exactly:
+Every script is self-contained. The `else` branch is **required**: when called from `larakit` or
+`setup.sh`, `SETUP_LOADED=1` is exported and the subprocess inherits it — but not shell functions.
+Without the `else` branch, `module_header` and all other lib functions would be undefined.
 
 ```bash
 if [[ -z "${SETUP_LOADED:-}" ]]; then
@@ -220,21 +221,29 @@ if [[ -z "${SETUP_LOADED:-}" ]]; then
   [[ -f "${_BASE}/config.sh" ]] && source "${_BASE}/config.sh"
   _src() {
     local f="$1"
-    if [[ -f "${_BASE}/lib/${f}" ]]; then
-      source "${_BASE}/lib/${f}"
-    else
-      local t; t=$(mktemp)
+    if [[ -f "${_BASE}/lib/${f}" ]]; then source "${_BASE}/lib/${f}"; else
+      local t
+      t=$(mktemp)
       curl -fsSL "${SETUP_BASE_URL}/lib/${f}" -o "$t" && source "$t"
       rm -f "$t"
     fi
   }
-  _src colors.sh; _src prompts.sh; _src creds.sh; _src utils.sh
+  _src colors.sh
+  _src prompts.sh
+  _src creds.sh
+  _src utils.sh
   export SETUP_LOADED=1
+else
+  # Called from larakit CLI or setup.sh — source libs from SETUP_BASE_DIR
+  source "${SETUP_BASE_DIR}/lib/colors.sh"
+  source "${SETUP_BASE_DIR}/lib/prompts.sh"
+  source "${SETUP_BASE_DIR}/lib/creds.sh"
+  source "${SETUP_BASE_DIR}/lib/utils.sh"
 fi
 ```
 
-Manage scripts set `_BASE="$(dirname "$_D")"` (one level up from `manage/`).
-Modules set `_BASE` one level up from `modules/`.
+Manage scripts and modules both use the same pattern. `SETUP_BASE_DIR` is always `/opt/larakit`
+when called from the CLI (exported by `larakit` at startup).
 
 ### "Detect existing" pattern
 
@@ -372,7 +381,7 @@ deploy. Both `deploy.sh` and `redeploy.sh` read and eval this value if set.
 |---|---|---|
 | `SETUP_BASE_URL` | GitHub raw URL | Base URL for remote lib/module downloads |
 | `SETUP_BASE_DIR` | Script directory | Local base directory |
-| `SETUP_LOADED` | (unset) | Set to `1` — prevents double-loading libs |
+| `SETUP_LOADED` | (unset) | Set to `1` by larakit/setup.sh — signals to module bootstrap to use `SETUP_BASE_DIR` instead of self-detecting |
 | `LARAKIT_HOME` | `/opt/larakit` | CLI installation directory |
 | `CREDS_FILE` | `~/.larakit-creds` | Credential storage path |
 | `DRY_RUN` | `false` | Print commands instead of running |

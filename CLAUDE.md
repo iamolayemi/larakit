@@ -69,7 +69,7 @@ Flags are always placed **after** the command. `parse_flags()` strips them from 
 
 ## Bootstrap Pattern
 
-Every module (and manage script, with a different `_BASE` path) must start with:
+Every module (and manage script) must start with this exact block. The `else` branch is required — without it, modules called from the `larakit` CLI will have no functions because `bash "$path"` spawns a new subprocess that inherits `SETUP_LOADED=1` but not shell functions.
 
 ```bash
 if [[ -z "${SETUP_LOADED:-}" ]]; then
@@ -78,15 +78,28 @@ if [[ -z "${SETUP_LOADED:-}" ]]; then
   [[ -f "${_BASE}/config.sh" ]] && source "${_BASE}/config.sh"
   _src() {
     local f="$1"
-    if [[ -f "${_BASE}/lib/${f}" ]]; then source "${_BASE}/lib/${f}"
-    else local t; t=$(mktemp); curl -fsSL "${SETUP_BASE_URL}/lib/${f}" -o "$t" && source "$t"; rm -f "$t"; fi
+    if [[ -f "${_BASE}/lib/${f}" ]]; then source "${_BASE}/lib/${f}"; else
+      local t
+      t=$(mktemp)
+      curl -fsSL "${SETUP_BASE_URL}/lib/${f}" -o "$t" && source "$t"
+      rm -f "$t"
+    fi
   }
-  _src colors.sh; _src prompts.sh; _src creds.sh; _src utils.sh
+  _src colors.sh
+  _src prompts.sh
+  _src creds.sh
+  _src utils.sh
   export SETUP_LOADED=1
+else
+  # Called from larakit CLI or setup.sh — source libs from SETUP_BASE_DIR
+  source "${SETUP_BASE_DIR}/lib/colors.sh"
+  source "${SETUP_BASE_DIR}/lib/prompts.sh"
+  source "${SETUP_BASE_DIR}/lib/creds.sh"
+  source "${SETUP_BASE_DIR}/lib/utils.sh"
 fi
 ```
 
-Add `_src notify.sh` if the script sends deploy notifications.
+Add `_src notify.sh` (and the corresponding `source` in the `else` branch) if the script sends deploy notifications.
 
 ---
 
