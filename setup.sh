@@ -2,7 +2,7 @@
 # =============================================================================
 #  LaraKit - Orchestrator
 #  Usage (local):   sudo bash setup.sh
-#  Usage (remote):  SETUP_BASE_URL=https://... sudo bash <(curl -fsSL .../setup.sh)
+#  Usage (remote):  curl -fsSL https://.../install.sh | sudo bash
 # =============================================================================
 set -euo pipefail
 

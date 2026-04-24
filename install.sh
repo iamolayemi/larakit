@@ -8,13 +8,16 @@
 #    sudo bash install.sh
 #
 #  Usage (remote):
-#    sudo bash <(curl -fsSL https://raw.githubusercontent.com/iamolayemi/larakit/main/install.sh)
+#    curl -fsSL https://raw.githubusercontent.com/iamolayemi/larakit/main/install.sh | sudo bash
 # =============================================================================
 set -euo pipefail
 
 INSTALL_DIR="/opt/larakit"
 BIN_PATH="/usr/local/bin/larakit"
 COMPLETION_PATH="/etc/bash_completion.d/larakit"
+
+# Default base URL — overridden by config.sh when running locally
+: "${SETUP_BASE_URL:=https://raw.githubusercontent.com/iamolayemi/larakit/main}"
 
 # Resolve whether we're running locally or from a remote pipe
 if [[ -n "${BASH_SOURCE[0]:-}" ]] && [[ -f "${BASH_SOURCE[0]}" ]]; then
@@ -25,11 +28,10 @@ else
   IS_LOCAL=false
 fi
 
-# Need SETUP_BASE_URL for remote installs — source config.sh if present
+# Source config.sh when running locally — may override SETUP_BASE_URL
 if [[ "$IS_LOCAL" == "true" ]] && [[ -f "${SCRIPT_DIR}/config.sh" ]]; then
   source "${SCRIPT_DIR}/config.sh"
 fi
-: "${SETUP_BASE_URL:?ERROR: SETUP_BASE_URL is not set. Export it or clone the repo locally.}"
 
 step() { echo -e "\n  \033[34m→\033[0m  $*"; }
 success() { echo -e "  \033[32m✔\033[0m  $*"; }

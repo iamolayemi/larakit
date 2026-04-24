@@ -9,7 +9,7 @@ A modular, interactive server installer and management tool for Laravel applicat
 ## Install
 
 ```bash
-sudo bash <(curl -fsSL "https://raw.githubusercontent.com/iamolayemi/larakit/main/install.sh")
+curl -fsSL "https://raw.githubusercontent.com/iamolayemi/larakit/main/install.sh" | sudo bash
 ```
 
 Or from a local clone:
@@ -29,7 +29,7 @@ source /etc/bash_completion.d/larakit     # bash
 To uninstall LaraKit (keeps all your installed software):
 
 ```bash
-sudo bash <(curl -fsSL "https://raw.githubusercontent.com/iamolayemi/larakit/main/uninstall.sh")
+curl -fsSL "https://raw.githubusercontent.com/iamolayemi/larakit/main/uninstall.sh" | sudo bash
 ```
 
 ---
