@@ -24,6 +24,12 @@ if [[ -z "${SETUP_LOADED:-}" ]]; then
   _src creds.sh
   _src utils.sh
   export SETUP_LOADED=1
+else
+  # Called from larakit CLI or setup.sh — source libs from SETUP_BASE_DIR
+  source "${SETUP_BASE_DIR}/lib/colors.sh"
+  source "${SETUP_BASE_DIR}/lib/prompts.sh"
+  source "${SETUP_BASE_DIR}/lib/creds.sh"
+  source "${SETUP_BASE_DIR}/lib/utils.sh"
 fi
 
 module_header "MinIO Object Storage" "Self-hosted S3-compatible storage. Ideal for file uploads, backups, and media."
