@@ -1,0 +1,18 @@
+services:
+  larakit:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: larakit-test
+    container_name: larakit-dev
+    privileged: true
+    tty: true
+    stdin_open: true
+    volumes:
+      - ..:/larakit
+    environment:
+      - SETUP_BASE_URL=https://raw.githubusercontent.com/iamolayemi/larakit/main
+      - GITHUB_USER=iamolayemi
+      - GITHUB_REPO=larakit
+      - GITHUB_BRANCH=main
+    command: bash

@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Local test artifacts
+/docker/volumes/
+*.log
+
+# Temp files
+/tmp/
+*.bak.*
+
+# Credentials (never commit)
+.larakit-creds
+.laravel-setup-creds

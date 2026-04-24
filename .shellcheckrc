@@ -1,0 +1,20 @@
+# ShellCheck configuration for LaraKit
+# https://www.shellcheck.net/wiki/
+
+# Target bash explicitly
+shell=bash
+
+# Disable rules that don't apply to this project's architecture
+
+# SC1090/SC1091 — dynamic source paths (lib files are loaded at runtime
+#   via _src() helper; paths are intentionally not static)
+disable=SC1090
+disable=SC1091
+
+# SC2034 — variables that appear unused but are exported for child scripts
+#   (e.g. SETUP_LOADED, SETUP_BASE_DIR, DRY_RUN)
+disable=SC2034
+
+# SC2154 — variables referenced but assigned in sourced lib files
+#   (e.g. RED, GREEN, BOLD, NC from colors.sh; ask/step/success from prompts.sh)
+disable=SC2154

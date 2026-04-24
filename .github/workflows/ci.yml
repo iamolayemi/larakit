@@ -1,0 +1,113 @@
+name: CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── 1. Bash syntax check ──────────────────────────────────────────────────
+  syntax:
+    name: Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check all .sh files
+        run: bash tests/syntax-check.sh
+
+      - name: Check larakit binary
+        run: bash -n larakit
+
+  # ── 2. Library unit tests ─────────────────────────────────────────────────
+  test-libs:
+    name: Library Tests
+    runs-on: ubuntu-latest
+    needs: syntax
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run lib unit tests
+        run: bash tests/test-libs.sh
+
+  # ── 3. ShellCheck lint ────────────────────────────────────────────────────
+  shellcheck:
+    name: ShellCheck
+    runs-on: ubuntu-latest
+    needs: syntax
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: |
+          curl -sSfL \
+            https://github.com/koalaman/shellcheck/releases/download/v0.10.0/shellcheck-v0.10.0.linux.x86_64.tar.xz \
+            | tar -xJ --strip-components=1 -C /usr/local/bin shellcheck-v0.10.0/shellcheck
+
+      - name: Lint all shell scripts
+        run: |
+          find . -name "*.sh" -not -path "./.git/*" \
+            -exec shellcheck --rcfile=.shellcheckrc --severity=warning {} +
+
+      - name: Lint larakit binary
+        run: shellcheck --rcfile=.shellcheckrc --severity=warning --shell=bash larakit
+
+  # ── 4. Format check (shfmt) ───────────────────────────────────────────────
+  shfmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+    needs: syntax
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install shfmt
+        run: |
+          curl -sSfL \
+            https://github.com/mvdan/sh/releases/download/v3.9.0/shfmt_v3.9.0_linux_amd64 \
+            -o /usr/local/bin/shfmt
+          chmod +x /usr/local/bin/shfmt
+
+      - name: Check formatting
+        run: |
+          shfmt -d -i 2 -bn -ci -sr \
+            $(find . -name "*.sh" -not -path "./.git/*") \
+            larakit
+
+  # ── 5. CLI smoke tests ────────────────────────────────────────────────────
+  validate-cli:
+    name: CLI Smoke Tests
+    runs-on: ubuntu-latest
+    needs: syntax
+    env:
+      LARAKIT_HOME: ${{ github.workspace }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Make larakit executable
+        run: chmod +x larakit
+
+      - name: Run CLI smoke tests
+        run: bash tests/test-cli.sh
+
+  # ── 6. Multi-distro syntax matrix ────────────────────────────────────────
+  compat:
+    name: Bash Compat (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    needs: syntax
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Syntax check on ${{ matrix.os }}
+        run: bash tests/syntax-check.sh
+
+      - name: Lib tests on ${{ matrix.os }}
+        run: bash tests/test-libs.sh

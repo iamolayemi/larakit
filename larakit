@@ -1,0 +1,700 @@
+#!/usr/bin/env bash
+# =============================================================================
+#  larakit — CLI entrypoint
+#  Usage: larakit <command> [args]
+# =============================================================================
+set -euo pipefail
+
+LARAKIT_VERSION="1.0.0"
+LARAKIT_HOME="${LARAKIT_HOME:-/opt/larakit}"
+
+if [[ ! -d "${LARAKIT_HOME}/lib" ]]; then
+  echo "ERROR: LaraKit home not found at ${LARAKIT_HOME}"
+  echo "       Re-run: sudo bash install.sh"
+  exit 1
+fi
+
+export SETUP_BASE_DIR="$LARAKIT_HOME"
+export SETUP_LOADED=1
+source "${LARAKIT_HOME}/config.sh"
+source "${LARAKIT_HOME}/lib/colors.sh"
+source "${LARAKIT_HOME}/lib/prompts.sh"
+source "${LARAKIT_HOME}/lib/creds.sh"
+source "${LARAKIT_HOME}/lib/utils.sh"
+
+resolve_module() {
+  case "${1,,}" in
+    preflight | pre-flight | 0 | 00) echo "00-preflight.sh" ;;
+    system | init | sysint | 1 | 01) echo "01-system-init.sh" ;;
+    hardening | security | 2 | 02) echo "02-server-hardening.sh" ;;
+    php | 3 | 03) echo "03-php.sh" ;;
+    nginx | 4 | 04) echo "04-nginx.sh" ;;
+    mysql | mariadb | db | 5 | 05) echo "05-mysql.sh" ;;
+    redis | 6 | 06) echo "06-redis.sh" ;;
+    node | nodejs | npm | 7 | 07) echo "07-node.sh" ;;
+    ssl | tls | certbot | 8 | 08) echo "08-ssl.sh" ;;
+    app | laravel | 9 | 09) echo "09-laravel-app.sh" ;;
+    queue | worker | 10) echo "10-queue-worker.sh" ;;
+    scheduler | cron | 11) echo "11-scheduler.sh" ;;
+    horizon | 12) echo "12-horizon.sh" ;;
+    reverb | websocket | ws | 13) echo "13-reverb.sh" ;;
+    octane | 14) echo "14-octane.sh" ;;
+    minio | s3 | 15) echo "15-minio.sh" ;;
+    postgres | postgresql | pg | 16) echo "16-postgres.sh" ;;
+    meilisearch | search | meili | 17) echo "17-meilisearch.sh" ;;
+    typesense | ts | 18) echo "18-typesense.sh" ;;
+    elasticsearch | elastic | es | 19) echo "19-elasticsearch.sh" ;;
+    rabbitmq | rabbit | mq | 20) echo "20-rabbitmq.sh" ;;
+    varnish | 21) echo "21-varnish.sh" ;;
+    lb | loadbalancer | haproxy | 22) echo "22-load-balancer.sh" ;;
+    mailpit | mail | 23) echo "23-mailpit.sh" ;;
+    backups | backup | 24) echo "24-backups.sh" ;;
+    tuning | tune | 25) echo "25-tuning.sh" ;;
+    monitoring | monitor | 26) echo "26-monitoring.sh" ;;
+    phpmyadmin | pma | 27) echo "27-phpmyadmin.sh" ;;
+    pgadmin | 28) echo "28-pgadmin.sh" ;;
+    soketi | pusher | 29) echo "29-soketi.sh" ;;
+    memcached | memcache | 30) echo "30-memcached.sh" ;;
+    chromium | chrome | pdf | wkhtml | 31) echo "31-chromium.sh" ;;
+    *) echo "" ;;
+  esac
+}
+
+resolve_manage() {
+  case "${1,,}" in
+    health | status) echo "health.sh" ;;
+    report) echo "report.sh" ;;
+    deploy) echo "deploy.sh" ;;
+    redeploy | full-deploy) echo "redeploy.sh" ;;
+    rollback) echo "rollback.sh" ;;
+    restart) echo "restart.sh" ;;
+
+    logs | log) echo "logs.sh" ;;
+    backup | db-backup) echo "db-backup.sh" ;;
+    restore | db-restore) echo "db-restore.sh" ;;
+    ssl-renew | renew-ssl) echo "ssl-renew.sh" ;;
+    queue | queue-status) echo "queue-status.sh" ;;
+    test-mail | testmail) echo "test-mail.sh" ;;
+    env | generate-env) echo "generate-env.sh" ;;
+    webhook) echo "webhook-listen.sh" ;;
+    update | self-update) echo "self-update.sh" ;;
+    creds | credentials) echo "credentials.sh" ;;
+    firewall | firewall-audit | fwaudit) echo "firewall-audit.sh" ;;
+    init | setup-creds) echo "init.sh" ;;
+    db-optimize | optimize | dbopt) echo "db-optimize.sh" ;;
+    perf | performance | load-test) echo "performance-test.sh" ;;
+    diagnose | diag | check) echo "diagnose.sh" ;;
+    env-check | envcheck | check-env) echo "env-check.sh" ;;
+    ssh-keys | sshkeys | ssh) echo "ssh-keys.sh" ;;
+    swap | swapfile) echo "swap.sh" ;;
+    crontab | cron-list | cronlist) echo "crontab.sh" ;;
+    php-ext | phpext | extensions) echo "php-ext.sh" ;;
+
+    db-copy | dbcopy | copy-db) echo "db-copy.sh" ;;
+    logrotate | log-rotate | logs-rotate) echo "logrotate.sh" ;;
+    queue-scale | scale | scale-queue) echo "queue-scale.sh" ;;
+    cache-clear | cache | clear-cache) echo "cache-clear.sh" ;;
+    ssl-info | ssl-status | cert-info) echo "ssl-info.sh" ;;
+    app-create | new-app | create-app) echo "app-create.sh" ;;
+    *) echo "" ;;
+  esac
+}
+
+run_module() {
+  local name="$1"
+  local file
+  file=$(resolve_module "$name")
+  if [[ -z "$file" ]]; then
+    error "Unknown module: '${name}'"
+    echo -e "  Run ${BOLD}larakit list modules${NC} to see available modules."
+    exit 1
+  fi
+  local path="${LARAKIT_HOME}/modules/${file}"
+  if [[ ! -f "$path" ]]; then
+    step "Downloading module: ${file}..."
+    mkdir -p "${LARAKIT_HOME}/modules"
+    curl -fsSL "${SETUP_BASE_URL}/modules/${file}" -o "$path"
+    chmod +x "$path"
+  fi
+  SETUP_BASE_DIR="$LARAKIT_HOME" SETUP_LOADED=1 CREDS_FILE="$CREDS_FILE" \
+    LARAKIT_APP="${LARAKIT_APP:-}" bash "$path"
+}
+
+run_manage() {
+  local name="$1"
+  local file
+  file=$(resolve_manage "$name")
+  if [[ -z "$file" ]]; then
+    error "Unknown manage command: '${name}'"
+    echo -e "  Run ${BOLD}larakit list manage${NC} to see available commands."
+    exit 1
+  fi
+  local path="${LARAKIT_HOME}/manage/${file}"
+  if [[ ! -f "$path" ]]; then
+    step "Downloading: manage/${file}..."
+    mkdir -p "${LARAKIT_HOME}/manage"
+    curl -fsSL "${SETUP_BASE_URL}/manage/${file}" -o "$path"
+    chmod +x "$path"
+  fi
+  SETUP_BASE_DIR="$LARAKIT_HOME" SETUP_LOADED=1 CREDS_FILE="$CREDS_FILE" \
+    LARAKIT_APP="${LARAKIT_APP:-}" bash "$path"
+}
+
+# Each entry: "num  canonical  aliases  description  details"
+
+declare -A MODULE_META=(
+  [preflight]="00|preflight|pre-flight 0 00|OS, disk, RAM, port and network checks before setup begins|Checks OS compatibility, free disk (>=10GB), RAM (>=1GB), internet connectivity, and that required ports are available. Blocks install on hard failures, warns on soft ones."
+  [system]="01|system|init sysint 1 01|OS updates, swap space, timezone, hostname, unattended upgrades|Runs apt-get upgrade, configures swap (size selectable), sets timezone and hostname, enables unattended-security-upgrades."
+  [hardening]="02|hardening|security 2 02|Deploy user, SSH key-only auth, UFW firewall, Fail2ban|Creates a non-root deploy user, disables password SSH login, configures UFW with sensible defaults, installs and configures Fail2ban for SSH."
+  [php]="03|php|3 03|PHP 8.2/8.3/8.4/8.5 + all Laravel extensions + Composer + OPcache|Installs PHP via ondrej/php PPA. Includes mbstring, xml, curl, zip, gd, intl, bcmath, redis, pgsql, opcache. Configures production php.ini values. Installs Composer."
+  [nginx]="04|nginx|4 04|Production-ready Nginx vhost with gzip and rate limiting|Creates a server block with gzip compression, browser caching headers, rate limiting, and security headers. Supports HTTP/2."
+  [mysql]="05|mysql|mariadb db 5 05|MySQL 8.0/8.4/9.2 or MariaDB 10.11/11.4/11.7|Installs from official repos. Creates a Laravel database and user with a generated password. Configures bind-address and basic InnoDB settings."
+  [redis]="06|redis|6 06|Redis 7.0/7.2/7.4/8.0 with password auth, persistence, eviction policy|Sets maxmemory, eviction policy (allkeys-lru), requirepass, and saves credentials. Optionally enables AOF persistence."
+  [node]="07|node|nodejs npm 7 07|Node.js 18/20/22/24 via NVM with optional Yarn, pnpm, or Bun|Installs NVM for the deploy user. Installs chosen Node.js version. Optionally installs Yarn, pnpm, or Bun package managers."
+  [ssl]="08|ssl|tls certbot 8 08|Let's Encrypt SSL via Certbot with auto-renewal timer|Installs Certbot and the Nginx plugin. Obtains a certificate for your domain. Sets up systemd timer for auto-renewal. Supports standalone and DNS challenge modes."
+  [app]="09|app|laravel 9 09|Clone repo, configure .env, run migrations, set permissions|Clones your Git repo, copies .env, runs composer install, php artisan migrate, key:generate, and sets correct file ownership for the deploy user."
+  [queue]="10|queue|worker 10|Supervisor-managed queue:work with multiple processes|Installs Supervisor, writes a laravel-worker.conf with configurable numprocs, restart policy, and log paths. Enables and starts the worker pool."
+  [scheduler]="11|scheduler|cron 11|Cron or Supervisor daemon for schedule:run|Adds a crontab entry (every minute) or creates a Supervisor program to run schedule:work (Laravel 10+ daemon mode)."
+  [horizon]="12|horizon|12|Laravel Horizon dashboard + Supervisor + Nginx /horizon route|Installs Horizon via composer, creates a Supervisor program, and adds an Nginx location block for /horizon with HTTP Basic Auth."
+  [reverb]="13|reverb|websocket ws 13|Laravel Reverb WebSocket server + Supervisor + Nginx proxy|Installs Reverb, creates a Supervisor program for reverb:start, and configures an Nginx upstream + WebSocket proxy (Upgrade/Connection headers)."
+  [octane]="14|octane|14|Laravel Octane with Swoole/FrankenPHP/RoadRunner + Nginx proxy|Installs the selected runtime, creates a Supervisor program, and writes an Nginx upstream block with keepalive and proxy_pass to the Octane port."
+  [minio]="15|minio|s3 15|MinIO S3-compatible object storage with Nginx proxy|Downloads the MinIO binary, creates a systemd service, sets up a bucket and access keys. Optionally adds an Nginx proxy for the console and API."
+  [postgres]="16|postgres|postgresql pg 16|PostgreSQL 15/16/17 via PGDG repo with PGTune-style config|Installs from the official PGDG repo. Creates a Laravel database and role. Writes a conf.d performance config tuned to your RAM. Installs uuid-ossp, pg_trgm, hstore extensions."
+  [meilisearch]="17|meilisearch|search meili 17|Meilisearch full-text search engine for Laravel Scout|Downloads the Meilisearch binary, creates a systemd service with a generated master key. Optionally adds an Nginx proxy. Prints the .env values to add."
+  [typesense]="18|typesense|ts 18|Typesense fast typo-tolerant search engine for Laravel Scout|Downloads the Typesense binary, creates a systemd service with a generated API key. Optionally adds an Nginx proxy. Prints the .env values to add."
+  [elasticsearch]="19|elasticsearch|elastic es 19|Elasticsearch 7/8 + optional Kibana for Laravel Scout or custom indexing|Installs from Elastic APT repo. Configures single-node mode. Optionally installs Kibana on port 5601 and adds an Nginx proxy."
+  [rabbitmq]="20|rabbitmq|rabbit mq 20|RabbitMQ AMQP message broker — alternative queue driver|Installs from PackageCloud. Creates a dedicated vhost and user. Enables management UI plugin. Optionally adds an Nginx proxy."
+  [varnish]="21|varnish|21|Varnish HTTP accelerator in front of Nginx|Installs Varnish from packagecloud. Moves Nginx to a backend port (default 8080). Writes a VCL that bypasses cookies/sessions, caches static assets, and adds X-Cache headers."
+  [lb]="22|lb|loadbalancer haproxy 22|Nginx or HAProxy load balancer for horizontal scaling|Configures upstream server blocks (Nginx) or a frontend/backend pair (HAProxy) with health checks, sticky sessions option, and SSL termination."
+  [mailpit]="23|mailpit|mail 23|SMTP mail catcher with web UI (staging/dev only)|Downloads Mailpit, creates a systemd service on configurable SMTP and web UI ports. Optionally adds an Nginx proxy for the web interface."
+  [backups]="24|backups|backup 24|Daily DB dump + file archive + S3/rsync upload + retention policy|Writes a backup script to cron (daily). Supports mysqldump/pg_dump, gzip compression, S3 upload via aws-cli, rsync to remote, and configurable retention days."
+  [tuning]="25|tuning|tune 25|sysctl kernel, PHP-FPM dynamic pool, Nginx workers, MySQL InnoDB|Three profiles: minimal / standard / aggressive. Tunes vm.swappiness, net buffers, PHP-FPM pm.max_children, Nginx worker_processes, and InnoDB buffer pool."
+  [monitoring]="26|monitoring|monitor 26|Netdata real-time metrics + UptimeKuma uptime monitoring|Installs Netdata (system metrics dashboard) and UptimeKuma (uptime/alerting). Both get Nginx proxy entries and optional SSL."
+  [phpmyadmin]="27|phpmyadmin|pma 27|phpMyAdmin — web-based MySQL/MariaDB administration behind HTTP auth|Downloads phpMyAdmin, serves it from a dedicated Nginx vhost with HTTP Basic Auth. Generates a blowfish_secret. Restricts access to an IP allowlist or basic auth only."
+  [pgadmin]="28|pgadmin|28|pgAdmin 4 — web-based PostgreSQL administration behind Nginx proxy|Installs pgAdmin 4 from the official APT repo. Creates an admin account, proxies through Nginx. Optional IP restriction. Use with larakit install postgres."
+  [soketi]="29|soketi|pusher 29|Self-hosted Pusher-compatible WebSocket server|Installs Soketi via npm. Writes /etc/soketi/config.json, creates a systemd service, and optionally adds an Nginx WebSocket proxy. Outputs Pusher-compatible .env values."
+  [memcached]="30|memcached|memcache 30|In-memory key-value cache — alternative to Redis for pure caching|Installs Memcached and the php-memcached extension. Configures memory limit, port, and max connections based on available RAM."
+  [chromium]="31|chromium|chrome pdf wkhtml 31|Headless Chromium and wkhtmltopdf for PDF and screenshot generation|Installs Chromium (used by Spatie Browsershot, Puppeteer) and wkhtmltopdf (used by DomPDF, Snappy). Installs fonts and enables unprivileged user namespaces for sandboxing."
+)
+
+declare -A MANAGE_META=(
+  [health]="health|status|Service statuses, ports, disk, RAM, and failed queue jobs|Shows systemctl status for all services, checks listening ports, disk usage, memory, and runs php artisan about."
+  [report]="report||Full server stack overview with versions, URLs, ports, SSL, and queue|Comprehensive one-screen report: services, tools, ports, SSL expiry, Supervisor workers, failed jobs, and links to all configured web UIs."
+  [deploy]="deploy||Pull latest code and deploy|git fetch + reset to origin branch. Optionally runs composer install, migrate, cache rebuild, and restarts PHP-FPM and queue workers."
+  [redeploy]="redeploy|full-deploy|Full redeploy with maintenance mode and migrations|Puts app in maintenance mode (trap ensures artisan up on exit), pulls code, runs composer, npm build (optional), migrate, optimize, and restarts all workers."
+  [rollback]="rollback||Revert to a previous release or git commit|Detects Deployer-style releases/ directory or plain git. For Deployer: lists releases and switches the current symlink. For git: resets HEAD~N."
+  [restart]="restart||Restart PHP-FPM, Nginx, queue workers, Horizon, Octane|Interactive checklist of services to restart. Reloads Nginx (graceful), restarts PHP-FPM, and uses supervisorctl for worker processes."
+
+  [logs]="logs|log|Tail Laravel, Nginx, queue worker, Horizon, and Octane logs|Interactive log selector. Uses tail -f on the selected log file(s). Supports multi-log view via tmux if available."
+  [backup]="backup|db-backup|On-demand database backup with optional S3 upload|Runs mysqldump or pg_dump, gzips the output, saves to a configurable directory. Optionally uploads to S3 via aws-cli."
+  [restore]="restore|db-restore|Restore a database from a .sql.gz backup file|Lists available backup files, prompts for confirmation, restores via mysql/psql. Optionally clears Laravel caches after restore."
+  [renew - ssl]="renew-ssl|ssl-renew|Force Let's Encrypt certificate renewal|Runs certbot renew --force-renewal with optional dry-run first. Reloads Nginx after renewal."
+  [queue]="queue|queue-status|Supervisor worker status, failed jobs, retry and flush|Shows supervisorctl status for all workers. Displays failed job count. Options to retry all failed jobs or flush the failed jobs table."
+  [test - mail]="test-mail|testmail|Verify SMTP config — send test email or inspect Mailpit inbox|Three modes: send via artisan tinker, test raw SMTP connection with nc, or show Mailpit inbox message count."
+  [env]="env|generate-env|Build a complete Laravel .env from saved credentials|Assembles APP_KEY, DB_*, REDIS_*, REVERB_*, MINIO_*, MEILISEARCH_* from the credentials file. Prompts for mail driver and other app-level settings."
+  [webhook]="webhook||Set up a GitHub/GitLab push webhook to auto-deploy|Creates a PHP webhook endpoint served by Nginx, a deploy runner script, and a sudoers entry so the web server can run deploys. Prints the webhook URL and secret to paste into GitHub/GitLab."
+  [update]="update|self-update|Download latest LaraKit scripts from GitHub|Downloads each script, validates bash syntax before replacing, backs up changed files. Reports updated/failed counts."
+  [creds]="creds|credentials|Display or delete the stored credentials file|Pretty-prints all saved credentials grouped by service. Offers to delete the file once you have saved everything securely."
+  [firewall]="firewall|firewall-audit fwaudit|Review UFW rules, open ports, and surface risks|Lists all UFW rules, shows TCP/UDP ports in use, flags databases or caches exposed on all interfaces, and suggests what to close."
+  [init]="init|setup-creds|Collect project credentials without installing anything|Prompts for domain, app path, deploy user, database driver, Redis settings, and notification webhooks. Saves everything to ~/.larakit-creds so all modules can pre-fill silently."
+  [db - optimize]="db-optimize|optimize dbopt|OPTIMIZE TABLE (MySQL/MariaDB) or VACUUM ANALYZE (PostgreSQL)|Loads DB credentials, runs table optimization, and prints a table size/fragmentation report."
+  [perf]="perf|performance load-test|Load test with ab or wrk — req/s and latency report|Prompts for target URL, concurrency, and duration. Auto-detects wrk/ab/hey. Installs ab if none found."
+  [diagnose]="diagnose|diag check|Health + firewall + SSL check in one shot|Runs health.sh, firewall-audit.sh, and an SSL certificate expiry check. Good first command on an unfamiliar server."
+  [env - check]="env-check|envcheck check-env|Compare .env against expected Laravel keys|Reads the app's .env file and checks for missing required keys, empty required values, and flags anything that doesn't look right. Run after deploy to verify environment is complete."
+  [ssh - keys]="ssh-keys|sshkeys ssh|View, add, or remove authorized SSH keys for the deploy user|List currently installed public keys, paste a new key to add it, or select a key to remove. Manages ~/.ssh/authorized_keys for the configured deploy user."
+  [swap]="swap|swapfile|Add, resize, or remove swap space|Creates a swap file of selectable size (1G/2G/4G/8G), adds it to /etc/fstab for persistence, and sets vm.swappiness=10. Safe to run on a live server."
+  [crontab]="crontab|cron-list cronlist|View and manage application cron entries|Shows all crontab entries for the deploy user and root. Options to add the Laravel schedule runner, view raw crontab, or open for editing."
+  [php - ext]="php-ext|phpext extensions|Enable or disable PHP extensions interactively|Lists installed PHP extensions for the active PHP version, allows enabling/disabling extensions via phpenmod/phpdismod, and restarts PHP-FPM after changes."
+
+  [db - copy]="db-copy|dbcopy copy-db|Copy a database between environments|Dump from remote (via SSH) or local source, then import to local destination. Supports MySQL/MariaDB and PostgreSQL. Useful for prod→staging copies."
+  [logrotate]="logrotate|log-rotate logs-rotate|Configure logrotate for Laravel, Nginx, and queue logs|Writes /etc/logrotate.d/ configs for app logs, Nginx access/error logs, Supervisor worker logs, and PHP-FPM. Configurable frequency and retention."
+  [queue - scale]="queue-scale|scale scale-queue|Adjust Supervisor worker count live|Lists all Supervisor queue worker programs, shows current numprocs, lets you pick a new count, updates the config, and restarts workers immediately."
+  [cache - clear]="cache-clear|cache clear-cache|Flush config, route, view, OPcache, and Redis cache|Runs php artisan optimize:clear, restarts PHP-FPM to clear OPcache, and optionally flushes a Redis database. Safe to run on a live app."
+  [ssl - info]="ssl-info|ssl-status cert-info|Show SSL certificate expiry and chain details for all domains|Scans Certbot live directory and Nginx vhosts. Shows days remaining, issuer, and highlights certs expiring within 30 days."
+  [app - create]="app-create|new-app create-app|Scaffold a new Laravel app — directory, Nginx vhost, database, .env|Creates the app directory structure with correct ownership, writes an Nginx server block, creates a database and user, generates an .env skeleton, and optionally requests an SSL certificate."
+)
+
+cmd_help() {
+  banner
+  echo -e "  ${BOLD}larakit${NC} v${LARAKIT_VERSION} — Laravel Server Installer & Management Tool"
+  echo
+  divider
+  echo -e "\n  ${BOLD}${CYAN}Usage${NC}"
+  echo -e "    larakit <command> [args] [flags]\n"
+
+  echo -e "  ${BOLD}${CYAN}Commands${NC}"
+  printf "  ${BOLD}%-32s${NC} %s\n" "setup" "Interactive full setup wizard (runs init automatically)"
+  printf "  ${BOLD}%-32s${NC} %s\n" "install <module>" "Run a single installation module"
+  printf "  ${BOLD}%-32s${NC} %s\n" "manage <command>" "Run a management script"
+  printf "  ${BOLD}%-32s${NC} %s\n" "diagnose" "Health + firewall + SSL check in one shot"
+  printf "  ${BOLD}%-32s${NC} %s\n" "status" "Quick service health check"
+  printf "  ${BOLD}%-32s${NC} %s\n" "update" "Download latest LaraKit scripts from GitHub"
+  printf "  ${BOLD}%-32s${NC} %s\n" "apps" "List all configured apps on this server"
+  printf "  ${BOLD}%-32s${NC} %s\n" "init" "Update credentials without reinstalling"
+  printf "  ${BOLD}%-32s${NC} %s\n" "list [modules|manage]" "List available modules or commands"
+  printf "  ${BOLD}%-32s${NC} %s\n" "version" "Show installed version"
+  printf "  ${BOLD}%-32s${NC} %s\n" "help" "Show this help screen"
+  echo
+
+  echo -e "  ${BOLD}${CYAN}Flags${NC}  ${DIM}(place after the command)${NC}"
+  printf "  ${BOLD}%-32s${NC} %s\n" "--dry-run, -n" "Simulate without making any changes"
+  printf "  ${BOLD}%-32s${NC} %s\n" "--quiet, -q" "Use defaults for all prompts (non-interactive)"
+  printf "  ${BOLD}%-32s${NC} %s\n" "--force, -f" "Skip 'already installed' prompts, force reinstall"
+  printf "  ${BOLD}%-32s${NC} %s\n" "--help, -h" "Show help for the given command or module"
+  printf "  ${BOLD}%-32s${NC} %s\n" "--app <name>" "Target a specific app (uses ~/.larakit-creds.<name>)"
+  echo
+
+  echo -e "  ${BOLD}${CYAN}Examples${NC}"
+  echo -e "  ${DIM}larakit install php"
+  echo -e "  larakit install php --help"
+  echo -e "  larakit install mysql --dry-run"
+  echo -e "  larakit install redis --quiet"
+  echo -e "  larakit setup --dry-run"
+  echo -e "  larakit manage deploy"
+  echo -e "  larakit manage firewall"
+  echo -e "  larakit list${NC}"
+  echo
+}
+
+cmd_setup_help() {
+  echo -e "\n  ${BOLD}${CYAN}larakit setup${NC} — Interactive full setup wizard"
+  echo
+  divider
+  echo -e "\n  ${BOLD}Usage${NC}"
+  echo -e "    sudo larakit setup\n"
+  echo -e "  ${BOLD}What it does${NC}"
+  echo -e "    Presents an interactive module selection menu, runs pre-flight checks,"
+  echo -e "    installs selected modules in order, and prints a summary with URLs and"
+  echo -e "    credential locations when done.\n"
+  echo -e "  ${BOLD}Presets${NC}  (type at the module selection prompt)"
+  printf "  ${BOLD}%-16s${NC} %s\n" "minimal" "Init, hardening, PHP, Nginx, MySQL, SSL, app"
+  printf "  ${BOLD}%-16s${NC} %s\n" "standard" "Minimal + Redis, Node.js, queue worker, scheduler, tuning"
+  printf "  ${BOLD}%-16s${NC} %s\n" "postgres" "Standard stack with PostgreSQL instead of MySQL"
+  printf "  ${BOLD}%-16s${NC} %s\n" "api" "Headless API stack — no Node.js, Redis queue, tuning"
+  printf "  ${BOLD}%-16s${NC} %s\n" "queue-heavy" "Standard + Horizon, extra Redis tuning"
+  printf "  ${BOLD}%-16s${NC} %s\n" "full" "Every module"
+  printf "  ${BOLD}%-16s${NC} %s\n" "1 3 9" "Any space-separated module numbers"
+  echo
+  echo -e "  ${BOLD}Flags${NC}"
+  printf "  ${BOLD}%-24s${NC} %s\n" "--dry-run / -n" "Print what would run without executing anything"
+  printf "  ${BOLD}%-24s${NC} %s\n" "--quiet / -q" "Accept all prompt defaults (non-interactive)"
+  echo
+  echo -e "  ${BOLD}Example${NC}"
+  echo -e "  ${DIM}sudo larakit setup"
+  echo -e "  sudo larakit setup --dry-run"
+  echo -e "  sudo larakit setup --quiet${NC}"
+  echo
+}
+
+module_help() {
+  local name="$1"
+  local file
+  file=$(resolve_module "$name")
+  if [[ -z "$file" ]]; then
+    error "Unknown module: '${name}'"
+    cmd_list_modules
+    exit 1
+  fi
+
+  local key="${file#??-}" # strip leading "00-"
+  key="${key%.sh}"        # strip ".sh"
+  # find canonical key in MODULE_META
+  local meta=""
+  for k in "${!MODULE_META[@]}"; do
+    local aliases
+    aliases=$(echo "${MODULE_META[$k]}" | cut -d'|' -f2-3)
+    if [[ "$k" == "$name" ]] || echo "$aliases" | grep -qw "$name" 2> /dev/null; then
+      meta="${MODULE_META[$k]}"
+      key="$k"
+      break
+    fi
+  done
+  [[ -z "$meta" ]] && meta="${MODULE_META[$key]:-}"
+
+  local num desc details canonical raw_aliases
+  num=$(echo "$meta" | cut -d'|' -f1)
+  canonical=$(echo "$meta" | cut -d'|' -f2)
+  raw_aliases=$(echo "$meta" | cut -d'|' -f3)
+  desc=$(echo "$meta" | cut -d'|' -f4)
+  details=$(echo "$meta" | cut -d'|' -f5)
+
+  echo -e "\n  ${BOLD}${CYAN}larakit install ${canonical}${NC}   ${DIM}(module ${num})${NC}"
+  echo
+  divider
+  echo -e "\n  ${BOLD}Description${NC}"
+  echo -e "    ${desc}\n"
+  echo -e "  ${BOLD}Details${NC}"
+  # word-wrap at ~70 chars
+  echo "$details" | fold -s -w 70 | sed 's/^/    /'
+  echo
+  if [[ -n "$raw_aliases" ]]; then
+    echo -e "  ${BOLD}Aliases${NC}"
+    echo -e "    ${DIM}$(echo "$raw_aliases" | tr ' ' ', ')${NC}"
+    echo
+  fi
+  echo -e "  ${BOLD}Run${NC}"
+  echo -e "    ${DIM}sudo larakit install ${canonical}${NC}"
+  echo
+}
+
+manage_help() {
+  local name="$1"
+  local file
+  file=$(resolve_manage "$name")
+  if [[ -z "$file" ]]; then
+    error "Unknown manage command: '${name}'"
+    cmd_list_manage
+    exit 1
+  fi
+
+  local meta=""
+  for k in "${!MANAGE_META[@]}"; do
+    if [[ "$k" == "$name" ]] || echo "${MANAGE_META[$k]}" | cut -d'|' -f2 | grep -qw "$name" 2> /dev/null; then
+      meta="${MANAGE_META[$k]}"
+      break
+    fi
+  done
+
+  local canonical raw_aliases desc details
+  canonical=$(echo "$meta" | cut -d'|' -f1)
+  raw_aliases=$(echo "$meta" | cut -d'|' -f2)
+  desc=$(echo "$meta" | cut -d'|' -f3)
+  details=$(echo "$meta" | cut -d'|' -f4)
+
+  echo -e "\n  ${BOLD}${CYAN}larakit manage ${canonical}${NC}"
+  echo
+  divider
+  echo -e "\n  ${BOLD}Description${NC}"
+  echo -e "    ${desc}\n"
+  echo -e "  ${BOLD}Details${NC}"
+  echo "$details" | fold -s -w 70 | sed 's/^/    /'
+  echo
+  if [[ -n "$raw_aliases" ]]; then
+    echo -e "  ${BOLD}Aliases${NC}"
+    echo -e "    ${DIM}$(echo "$raw_aliases" | tr ' ' ', ')${NC}"
+    echo
+  fi
+  echo -e "  ${BOLD}Run${NC}"
+  echo -e "    ${DIM}sudo larakit manage ${canonical}${NC}"
+  echo
+}
+
+cmd_list_modules() {
+  echo -e "\n  ${BOLD}${CYAN}Installation Modules${NC}  (usage: larakit install <name>)\n"
+  local entries=(
+    "00  preflight       Pre-flight checks (OS, disk, RAM, ports)"
+    "01  system          System init — updates, swap, timezone, hostname"
+    "02  hardening       UFW, Fail2ban, SSH hardening"
+    "03  php             PHP 8.2/8.3/8.4 + extensions + Composer"
+    "04  nginx           Nginx vhost, gzip, rate limiting"
+    "05  mysql           MySQL / MariaDB"
+    "06  redis           Redis with auth, persistence, eviction"
+    "07  node            Node.js via NVM"
+    "08  ssl             Let's Encrypt / Certbot"
+    "09  app             Laravel app clone, .env, migrate, permissions"
+    "10  queue           Supervisor queue workers"
+    "11  scheduler       Cron / Supervisor scheduler"
+    "12  horizon         Laravel Horizon + Nginx basic auth"
+    "13  reverb          Laravel Reverb WebSocket server"
+    "14  octane          Laravel Octane (Swoole / FrankenPHP)"
+    "15  minio           MinIO S3-compatible object storage"
+    "16  postgres        PostgreSQL 15/16/17"
+    "17  meilisearch     Meilisearch full-text search (Laravel Scout)"
+    "18  typesense       Typesense fast typo-tolerant search"
+    "19  elasticsearch   Elasticsearch + Kibana"
+    "20  rabbitmq        RabbitMQ AMQP message broker"
+    "21  varnish         Varnish HTTP cache in front of Nginx"
+    "22  lb              Nginx / HAProxy load balancer"
+    "23  mailpit         SMTP mail catcher + web UI"
+    "24  backups         Daily DB + file backups + S3/rsync"
+    "25  tuning          sysctl, PHP-FPM, Nginx, MySQL InnoDB tuning"
+    "26  monitoring      Netdata + UptimeKuma"
+    "27  phpmyadmin      phpMyAdmin web-based MySQL/MariaDB admin"
+    "28  pgadmin         pgAdmin 4 web-based PostgreSQL admin"
+  )
+  for e in "${entries[@]}"; do
+    local num="${e:0:2}" rest="${e:4}"
+    local name="${rest%%  *}" desc="${rest#*  }"
+    printf "  ${DIM}%s${NC}  ${BOLD}%-18s${NC} %s\n" "$num" "$name" "$desc"
+  done
+  echo -e "\n  ${DIM}Run 'larakit install <name> --help' for details on any module.${NC}\n"
+}
+
+cmd_list_manage() {
+  echo -e "\n  ${BOLD}${CYAN}Management Commands${NC}  (usage: larakit manage <name>)\n"
+  local entries=(
+    "health          Service statuses, ports, disk, RAM, failed jobs"
+    "report          Full stack overview — versions, URLs, SSL, queue"
+    "deploy          Pull latest code and deploy"
+    "redeploy        Full redeploy with maintenance mode and migrations"
+    "rollback        Revert to previous release"
+    "restart         Restart PHP-FPM, Nginx, queue workers, Horizon"
+
+    "logs            Tail Laravel, Nginx, queue, Horizon, Octane logs"
+    "backup          On-demand database backup"
+    "restore         Restore database from a .sql.gz backup"
+    "renew-ssl       Force Let's Encrypt certificate renewal"
+    "queue           Supervisor worker status, failed jobs, retry/flush"
+    "test-mail       Verify SMTP config or check Mailpit inbox"
+    "env             Generate Laravel .env from saved credentials"
+    "webhook         Set up GitHub/GitLab push webhook auto-deploy"
+    "update          Download latest LaraKit scripts from GitHub"
+    "creds           Display or delete stored credentials"
+    "firewall        Review UFW rules and open ports"
+    "init            Update credentials without reinstalling"
+    "db-optimize     OPTIMIZE TABLE (MySQL) or VACUUM ANALYZE (Postgres)"
+    "perf            Load test with ab or wrk"
+    "diagnose        Health + firewall + SSL check in one shot"
+    "env-check       Compare .env against expected keys"
+    "ssh-keys        Manage authorized_keys for the deploy user"
+    "swap            Add, resize, or remove swap space"
+    "crontab         View and manage application cron entries"
+    "php-ext         Enable or disable PHP extensions"
+
+    "db-copy         Copy database between environments"
+    "logrotate       Configure log rotation for app and Nginx logs"
+    "queue-scale     Adjust Supervisor worker count live"
+  )
+  for e in "${entries[@]}"; do
+    local name="${e%%  *}" desc="${e#*  }"
+    printf "  ${BOLD}%-18s${NC} %s\n" "$name" "$desc"
+  done
+  echo -e "\n  ${DIM}Run 'larakit manage <name> --help' for details on any command.${NC}\n"
+}
+
+# Scan an array of args for flags; exports DRY_RUN, LARAKIT_QUIET, LARAKIT_FORCE
+parse_flags() {
+  local -n _ref=$1
+  shift
+  local filtered=()
+  local skip_next=false
+  for arg in "${_ref[@]+"${_ref[@]}"}"; do
+    if [[ "$skip_next" == "true" ]]; then
+      skip_next=false
+      continue
+    fi
+    case "$arg" in
+      --dry-run | -n) export DRY_RUN=true ;;
+      --quiet | -q) export LARAKIT_QUIET=true ;;
+      --force | -f) export LARAKIT_FORCE=true ;;
+      --profile=*)
+        export LARAKIT_PROFILE="${arg#--profile=}"
+        filtered+=("$arg")
+        ;;
+      --profile)
+        export LARAKIT_PROFILE="${_ref[*]+${_ref[1]:-}}"
+        filtered+=("$arg")
+        ;;
+      --app=*) export LARAKIT_APP="${arg#--app=}" ;;
+      --app)
+        export LARAKIT_APP="${_ref[*]+${_ref[1]:-}}"
+        skip_next=true
+        ;;
+      *) filtered+=("$arg") ;;
+    esac
+  done
+  _ref=("${filtered[@]+"${filtered[@]}"}")
+}
+
+has_flag() {
+  local flag="$1"
+  shift
+  for arg in "$@"; do
+    [[ "$arg" == "$flag" || "$arg" == "-h" && "$flag" == "--help" ]] && return 0
+  done
+  return 1
+}
+
+# Auto-detect app from current working directory.
+# Priority: 1) .larakit project file (walk up from $PWD)
+#           2) APP_PATH match in ~/.larakit-creds.* (longest match wins)
+# Only runs if --app was not given.
+auto_detect_app() {
+  [[ -n "${LARAKIT_APP:-}" ]] && return
+
+  # 1. Walk up from $PWD looking for a .larakit file
+  local dir="$PWD"
+  while [[ "$dir" != "/" ]]; do
+    if [[ -f "${dir}/.larakit" ]]; then
+      local file_app
+      file_app=$(grep "^APP=" "${dir}/.larakit" 2> /dev/null | cut -d'=' -f2- | head -1 | tr -d ' ')
+      if [[ -n "$file_app" ]]; then
+        export LARAKIT_APP="$file_app"
+        dim "Auto-detected app: ${LARAKIT_APP}  (${dir}/.larakit)"
+        return
+      fi
+    fi
+    dir="$(dirname "$dir")"
+  done
+
+  # 2. Scan ~/.larakit-creds.* for APP_PATH matching $PWD
+  local cwd="$PWD"
+  local best_app="" best_len=0
+
+  shopt -s nullglob
+  for f in "$HOME"/.larakit-creds.*; do
+    local app="${f##*\.larakit-creds\.}"
+    local app_path
+    app_path=$(grep "^APP_PATH=" "$f" 2> /dev/null | cut -d'=' -f2- | head -1)
+    if [[ -n "$app_path" && "$cwd" == "$app_path"* && "${#app_path}" -gt "$best_len" ]]; then
+      best_app="$app"
+      best_len="${#app_path}"
+    fi
+  done
+  shopt -u nullglob
+
+  if [[ -n "$best_app" ]]; then
+    export LARAKIT_APP="$best_app"
+    dim "Auto-detected app: ${LARAKIT_APP}  (${PWD})"
+  fi
+}
+
+# Call after parse_flags — re-points CREDS_FILE to the app-specific file.
+resolve_creds_file() {
+  auto_detect_app
+  if [[ -n "${LARAKIT_APP:-}" ]]; then
+    export CREDS_FILE="${HOME}/.larakit-creds.${LARAKIT_APP}"
+  fi
+}
+
+CMD="${1:-help}"
+shift || true
+
+# larakit --help / larakit -h with no command
+[[ "$CMD" == "--help" || "$CMD" == "-h" ]] && CMD="help"
+
+case "$CMD" in
+  init)
+    ARGS=("$@")
+    has_flag --help "${ARGS[@]+"${ARGS[@]}"}" && {
+      manage_help "init"
+      exit 0
+    }
+    parse_flags ARGS
+    resolve_creds_file
+    require_root
+    run_manage "init"
+    ;;
+  diagnose | diag)
+    ARGS=("$@")
+    has_flag --help "${ARGS[@]+"${ARGS[@]}"}" && {
+      manage_help "diagnose"
+      exit 0
+    }
+    parse_flags ARGS
+    resolve_creds_file
+    require_root
+    run_manage "diagnose"
+    ;;
+  setup)
+    ARGS=("$@")
+    has_flag --help "${ARGS[@]+"${ARGS[@]}"}" && {
+      cmd_setup_help
+      exit 0
+    }
+    parse_flags ARGS
+    resolve_creds_file
+    require_root
+    bash "${LARAKIT_HOME}/setup.sh" "${ARGS[@]+"${ARGS[@]}"}"
+    ;;
+  install | i)
+    ARG="${1:-}"
+    [[ "$ARG" == "--help" || "$ARG" == "-h" || -z "$ARG" ]] && {
+      cmd_list_modules
+      exit 0
+    }
+    shift || true
+    ARGS=("$@")
+    has_flag --help "${ARGS[@]+"${ARGS[@]}"}" && {
+      module_help "$ARG"
+      exit 0
+    }
+    parse_flags ARGS
+    resolve_creds_file
+    require_root
+    run_module "$ARG"
+    ;;
+  manage | m | run)
+    ARG="${1:-}"
+    [[ "$ARG" == "--help" || "$ARG" == "-h" || -z "$ARG" ]] && {
+      cmd_list_manage
+      exit 0
+    }
+    shift || true
+    ARGS=("$@")
+    has_flag --help "${ARGS[@]+"${ARGS[@]}"}" && {
+      manage_help "$ARG"
+      exit 0
+    }
+    parse_flags ARGS
+    resolve_creds_file
+    require_root
+    run_manage "$ARG"
+    ;;
+  list | ls)
+    FILTER="${1:-all}"
+    case "$FILTER" in
+      modules | install) cmd_list_modules ;;
+      manage | run) cmd_list_manage ;;
+      *)
+        cmd_list_modules
+        cmd_list_manage
+        ;;
+    esac
+    ;;
+  update)
+    ARGS=("$@")
+    parse_flags ARGS
+    resolve_creds_file
+    require_root
+    run_manage "self-update"
+    ;;
+  status)
+    ARGS=("$@")
+    parse_flags ARGS
+    resolve_creds_file
+    require_root
+    run_manage "health"
+    ;;
+  apps)
+    section "Configured Apps"
+    shopt -s nullglob
+    found=false
+    for f in "$HOME"/.larakit-creds.*; do
+      app="${f##*.larakit-creds.}"
+      domain=$(grep "^APP_DOMAIN=" "$f" 2> /dev/null | cut -d'=' -f2- || echo "—")
+      printf "  ${BOLD}%-20s${NC} %s  ${DIM}%s${NC}\n" "$app" "$domain" "$f"
+      found=true
+    done
+    if [[ -f "$HOME/.larakit-creds" ]]; then
+      domain=$(grep "^APP_DOMAIN=" "$HOME/.larakit-creds" 2> /dev/null | cut -d'=' -f2- || echo "—")
+      printf "  ${BOLD}%-20s${NC} %s  ${DIM}%s${NC}\n" "(default)" "$domain" "$HOME/.larakit-creds"
+      found=true
+    fi
+    [[ "$found" == "false" ]] && info "No apps configured yet. Run: larakit setup"
+    echo -e "\n  ${DIM}Use --app <name> with any command to target a specific app.${NC}\n"
+    ;;
+  version | -v | --version)
+    echo "larakit v${LARAKIT_VERSION} — home: ${LARAKIT_HOME}"
+    # Non-blocking update check via GitHub API
+    if has_cmd curl; then
+      latest=""
+      latest=$(curl -fsSL --max-time 3 \
+        "https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest" \
+        2> /dev/null | grep '"tag_name"' | cut -d'"' -f4 | tr -d 'v') || true
+      if [[ -n "$latest" && "$latest" != "$LARAKIT_VERSION" ]]; then
+        echo
+        echo -e "  ${YELLOW}${BOLD}Update available:${NC} v${latest}  ${DIM}(you have v${LARAKIT_VERSION})${NC}"
+        echo -e "  ${DIM}Run: larakit update${NC}"
+      fi
+    fi
+    ;;
+  help | --help | -h | "")
+    cmd_help
+    ;;
+  *)
+    error "Unknown command: '${CMD}'"
+    echo -e "  Run ${BOLD}larakit help${NC} for usage."
+    exit 1
+    ;;
+esac
