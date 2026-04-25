@@ -107,11 +107,22 @@ fi
 echo -e "\n  ${BOLD}Network & Connectivity${NC}"
 divider
 
-if curl -fsSL --max-time 5 https://google.com -o /dev/null 2> /dev/null; then
-  check_pass "Internet connectivity (HTTPS)"
+# Test against multiple endpoints — some VPS providers block google.com but
+# have full outbound connectivity. Pass if any endpoint responds.
+_net_ok=false
+for _host in archive.ubuntu.com security.ubuntu.com 8.8.8.8; do
+  if curl -fsS --max-time 5 "http://${_host}" -o /dev/null 2> /dev/null \
+    || nc -zw3 "$_host" 80 2> /dev/null; then
+    _net_ok=true
+    break
+  fi
+done
+if [[ "$_net_ok" == "true" ]]; then
+  check_pass "Internet connectivity"
 else
   check_fail "No internet connectivity — packages cannot be downloaded"
 fi
+unset _net_ok _host
 
 if curl -fsSL --max-time 5 https://ppa.launchpadcontent.net -o /dev/null 2> /dev/null; then
   check_pass "Launchpad PPA reachable (ondrej/php)"
