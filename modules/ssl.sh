@@ -37,9 +37,16 @@ require_root
 
 # Config
 APP_DOMAIN="$(creds_load APP_DOMAIN 2> /dev/null || echo "")"
+
+# If APP_DOMAIN is a catch-all or IP, don't pre-fill — SSL requires a real domain
+if [[ "${APP_DOMAIN:-}" == "_" ]] || [[ "${APP_DOMAIN:-}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  APP_DOMAIN=""
+fi
+
 ask SSL_DOMAIN "Primary domain for SSL" "${APP_DOMAIN:-}"
 [[ -z "$SSL_DOMAIN" ]] && {
-  error "Domain cannot be empty."
+  error "A real domain name is required for SSL certificates."
+  error "Point a domain at this server's IP, then run: larakit install ssl"
   exit 1
 }
 

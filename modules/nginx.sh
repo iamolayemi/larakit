@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 04 — Nginx Web Server & Virtual Host
-#  Run standalone: sudo bash modules/04-nginx.sh
+#  Module — Nginx Web Server & Virtual Host
+#  Run standalone: sudo bash modules/nginx.sh
 # =============================================================================
 set -euo pipefail
 
@@ -42,15 +42,26 @@ ask_choice NGINX_SOURCE "Nginx source:" \
   "Nginx stable repo (latest stable)"
 
 # App config
-ask APP_DOMAIN "Application domain (e.g. app.example.com)" ""
-[[ -z "$APP_DOMAIN" ]] && {
-  error "Domain cannot be empty."
-  exit 1
-}
+info "Leave domain blank to serve on the server's IP (you can add a domain later)."
+ask APP_DOMAIN "Application domain or IP (leave blank for catch-all)" "$(creds_load APP_DOMAIN 2> /dev/null || echo "")"
 
-ask_yn HAS_WWW "Also serve www.${APP_DOMAIN}?" "y"
-SERVER_NAME="$APP_DOMAIN"
-[[ "$HAS_WWW" == "true" ]] && SERVER_NAME="${APP_DOMAIN} www.${APP_DOMAIN}"
+# Determine server_name and a filesystem-safe identifier
+# A "real domain" starts with a letter — IPs and blank are not real domains
+if [[ -z "$APP_DOMAIN" || "$APP_DOMAIN" == "_" ]]; then
+  SERVER_NAME="_"
+  VHOST_ID="default-app"
+  APP_DOMAIN="_"
+elif [[ "$APP_DOMAIN" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  # IPv4 address — valid nginx server_name; use underscores for filenames
+  SERVER_NAME="$APP_DOMAIN"
+  VHOST_ID="${APP_DOMAIN//./_}"
+else
+  # Real hostname
+  SERVER_NAME="$APP_DOMAIN"
+  VHOST_ID="$APP_DOMAIN"
+  ask_yn HAS_WWW "Also serve www.${APP_DOMAIN}?" "y"
+  [[ "${HAS_WWW:-false}" == "true" ]] && SERVER_NAME="${APP_DOMAIN} www.${APP_DOMAIN}"
+fi
 
 # Detect PHP version from saved creds or ask
 PHP_VERSION="$(creds_load PHP_VERSION 2> /dev/null || echo "")"
@@ -67,7 +78,7 @@ ask_choice DEPLOY_STYLE "Deployment style:" \
 DEPLOY_USER="$(creds_load DEPLOY_USER 2> /dev/null || echo "deploy")"
 ask DEPLOY_USER "Deploy user that owns app files" "$DEPLOY_USER"
 
-ask APP_ROOT "App root directory" "/var/www/${APP_DOMAIN}"
+ask APP_ROOT "App root directory" "/var/www/${VHOST_ID}"
 
 if [[ "$DEPLOY_STYLE" == Deployer* ]]; then
   NGINX_ROOT="${APP_ROOT}/current/public"
@@ -81,10 +92,11 @@ ask MAX_BODY_SIZE "Max upload size (client_max_body_size)" "64m"
 
 echo
 info "Configuration:"
-dim "Domain:    ${SERVER_NAME}"
-dim "Root:      ${NGINX_ROOT}"
-dim "PHP sock:  /run/php/php${PHP_VERSION}-fpm.sock"
-dim "App dir:   ${APP_ROOT}"
+dim "server_name: ${SERVER_NAME}"
+dim "Vhost file:  /etc/nginx/sites-available/${VHOST_ID}"
+dim "Root:        ${NGINX_ROOT}"
+dim "PHP sock:    /run/php/php${PHP_VERSION}-fpm.sock"
+dim "App dir:     ${APP_ROOT}"
 echo
 confirm_or_exit "Install Nginx and create vhost?"
 
@@ -142,7 +154,7 @@ if [[ "$ENABLE_GZIP" == "true" ]]; then
 fi
 
 # Write vhost
-VHOST_FILE="/etc/nginx/sites-available/${APP_DOMAIN}"
+VHOST_FILE="/etc/nginx/sites-available/${VHOST_ID}"
 step "Writing vhost: ${VHOST_FILE}..."
 
 cat > "$VHOST_FILE" << NGINX
@@ -164,8 +176,8 @@ server {
     ${GZIP_BLOCK}
 
     # Logs
-    access_log /var/log/nginx/${APP_DOMAIN}-access.log;
-    error_log  /var/log/nginx/${APP_DOMAIN}-error.log error;
+    access_log /var/log/nginx/${VHOST_ID}-access.log;
+    error_log  /var/log/nginx/${VHOST_ID}-error.log error;
 
     location / {
         try_files \$uri \$uri/ /index.php?\$query_string;
@@ -194,17 +206,26 @@ server {
 NGINX
 
 # Enable site
-ln -sf "/etc/nginx/sites-available/${APP_DOMAIN}" "/etc/nginx/sites-enabled/${APP_DOMAIN}" 2> /dev/null || true
+ln -sf "/etc/nginx/sites-available/${VHOST_ID}" "/etc/nginx/sites-enabled/${VHOST_ID}" 2> /dev/null || true
 rm -f /etc/nginx/sites-enabled/default 2> /dev/null || true
 
 nginx -t && systemctl reload nginx
-success "Vhost created and enabled: ${APP_DOMAIN}"
+success "Vhost created and enabled: ${VHOST_ID}"
 
 # Save
 creds_section "Nginx"
 creds_save "APP_DOMAIN" "$APP_DOMAIN"
+creds_save "VHOST_ID" "$VHOST_ID"
 creds_save "APP_ROOT" "$APP_ROOT"
 creds_save "NGINX_ROOT" "$NGINX_ROOT"
 creds_save "NGINX_VHOST" "$VHOST_FILE"
+
+if [[ "$APP_DOMAIN" == "_" ]]; then
+  info "No domain set — app is accessible via the server's IP address."
+  info "To add a domain later: larakit install nginx  (choose 'Reconfigure')"
+  info "Then run:             larakit install ssl"
+else
+  info "To add SSL: larakit install ssl"
+fi
 
 success "Nginx module complete."
