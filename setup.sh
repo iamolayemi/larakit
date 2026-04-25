@@ -41,37 +41,37 @@ source "${SCRIPT_DIR}/lib/creds.sh"
 source "${SCRIPT_DIR}/lib/utils.sh"
 
 declare -a MODULE_FILES=(
-  "01-system-init.sh"
-  "02-server-hardening.sh"
-  "03-php.sh"
-  "04-nginx.sh"
-  "05-mysql.sh"
-  "06-redis.sh"
-  "07-node.sh"
-  "08-ssl.sh"
-  "09-laravel-app.sh"
-  "10-queue-worker.sh"
-  "11-scheduler.sh"
-  "12-horizon.sh"
-  "13-reverb.sh"
-  "14-octane.sh"
-  "15-minio.sh"
-  "16-postgres.sh"
-  "17-meilisearch.sh"
-  "18-typesense.sh"
-  "19-elasticsearch.sh"
-  "20-rabbitmq.sh"
-  "21-varnish.sh"
-  "22-load-balancer.sh"
-  "23-mailpit.sh"
-  "24-backups.sh"
-  "25-tuning.sh"
-  "26-monitoring.sh"
-  "27-phpmyadmin.sh"
-  "28-pgadmin.sh"
-  "29-soketi.sh"
-  "30-memcached.sh"
-  "31-chromium.sh"
+  "system-init.sh"
+  "server-hardening.sh"
+  "php.sh"
+  "nginx.sh"
+  "mysql.sh"
+  "redis.sh"
+  "node.sh"
+  "ssl.sh"
+  "laravel-app.sh"
+  "queue-worker.sh"
+  "scheduler.sh"
+  "horizon.sh"
+  "reverb.sh"
+  "octane.sh"
+  "minio.sh"
+  "postgres.sh"
+  "meilisearch.sh"
+  "typesense.sh"
+  "elasticsearch.sh"
+  "rabbitmq.sh"
+  "varnish.sh"
+  "load-balancer.sh"
+  "mailpit.sh"
+  "backups.sh"
+  "tuning.sh"
+  "monitoring.sh"
+  "phpmyadmin.sh"
+  "pgadmin.sh"
+  "soketi.sh"
+  "memcached.sh"
+  "chromium.sh"
 )
 
 declare -a MODULE_NAMES=(
@@ -206,12 +206,12 @@ run_cred_wizard() {
   echo
 }
 
-run_preset_minimal() { SELECTED_MODULES=("01-system-init.sh" "02-server-hardening.sh" "03-php.sh" "04-nginx.sh" "05-mysql.sh" "08-ssl.sh" "09-laravel-app.sh"); }
-run_preset_standard() { SELECTED_MODULES=("01-system-init.sh" "02-server-hardening.sh" "03-php.sh" "04-nginx.sh" "05-mysql.sh" "06-redis.sh" "07-node.sh" "08-ssl.sh" "09-laravel-app.sh" "10-queue-worker.sh" "11-scheduler.sh" "25-tuning.sh"); }
-run_preset_postgres() { SELECTED_MODULES=("01-system-init.sh" "02-server-hardening.sh" "03-php.sh" "04-nginx.sh" "16-postgres.sh" "06-redis.sh" "07-node.sh" "08-ssl.sh" "09-laravel-app.sh" "10-queue-worker.sh" "11-scheduler.sh"); }
+run_preset_minimal() { SELECTED_MODULES=("system-init.sh" "server-hardening.sh" "php.sh" "nginx.sh" "mysql.sh" "ssl.sh" "laravel-app.sh"); }
+run_preset_standard() { SELECTED_MODULES=("system-init.sh" "server-hardening.sh" "php.sh" "nginx.sh" "mysql.sh" "redis.sh" "node.sh" "ssl.sh" "laravel-app.sh" "queue-worker.sh" "scheduler.sh" "tuning.sh"); }
+run_preset_postgres() { SELECTED_MODULES=("system-init.sh" "server-hardening.sh" "php.sh" "nginx.sh" "postgres.sh" "redis.sh" "node.sh" "ssl.sh" "laravel-app.sh" "queue-worker.sh" "scheduler.sh"); }
 run_preset_full() { SELECTED_MODULES=("${MODULE_FILES[@]}"); }
-run_preset_api() { SELECTED_MODULES=("01-system-init.sh" "02-server-hardening.sh" "03-php.sh" "04-nginx.sh" "05-mysql.sh" "06-redis.sh" "08-ssl.sh" "09-laravel-app.sh" "10-queue-worker.sh" "11-scheduler.sh" "25-tuning.sh"); }
-run_preset_queue_heavy() { SELECTED_MODULES=("01-system-init.sh" "02-server-hardening.sh" "03-php.sh" "04-nginx.sh" "05-mysql.sh" "06-redis.sh" "07-node.sh" "08-ssl.sh" "09-laravel-app.sh" "10-queue-worker.sh" "11-scheduler.sh" "12-horizon.sh" "25-tuning.sh"); }
+run_preset_api() { SELECTED_MODULES=("system-init.sh" "server-hardening.sh" "php.sh" "nginx.sh" "mysql.sh" "redis.sh" "ssl.sh" "laravel-app.sh" "queue-worker.sh" "scheduler.sh" "tuning.sh"); }
+run_preset_queue_heavy() { SELECTED_MODULES=("system-init.sh" "server-hardening.sh" "php.sh" "nginx.sh" "mysql.sh" "redis.sh" "node.sh" "ssl.sh" "laravel-app.sh" "queue-worker.sh" "scheduler.sh" "horizon.sh" "tuning.sh"); }
 
 run_module() {
   local mod="$1"
@@ -368,7 +368,7 @@ main() {
 
   ask_yn RUN_PREFLIGHT "Run pre-flight checks before setup?" "y"
   if [[ "$RUN_PREFLIGHT" == "true" ]]; then
-    run_module "00-preflight.sh" || true
+    run_module "preflight.sh" || true
     echo
   fi
 

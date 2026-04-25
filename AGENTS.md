@@ -24,38 +24,38 @@ larakit/
 │   ├── utils.sh           # Shared utilities (require_root, run_quiet, spinner, etc.)
 │   └── notify.sh          # Slack / Telegram / Discord deploy notifications
 ├── modules/
-│   ├── 00-preflight.sh        # OS, disk, RAM, port, and network pre-checks
-│   ├── 01-system-init.sh      # OS updates, swap, timezone, hostname
-│   ├── 02-server-hardening.sh # Deploy user, SSH hardening, UFW, Fail2ban
-│   ├── 03-php.sh              # PHP 8.2/8.3/8.4 + extensions + Composer + OPcache
-│   ├── 04-nginx.sh            # Nginx + Laravel vhost + gzip + rate limiting
-│   ├── 05-mysql.sh            # MySQL 8.0/8.4/9.2 or MariaDB 10.11/11.4/11.7
-│   ├── 06-redis.sh            # Redis 7.0/7.2/7.4 with auth + persistence + tuning
-│   ├── 07-node.sh             # Node.js 18/20/22 via NVM + optional Yarn/pnpm/Bun
-│   ├── 08-ssl.sh              # Let's Encrypt via Certbot (Nginx/standalone/DNS)
-│   ├── 09-laravel-app.sh      # Clone repo, .env, composer, migrate, cache, permissions
-│   ├── 10-queue-worker.sh     # Supervisor + queue:work with multi-process config
-│   ├── 11-scheduler.sh        # Cron or Supervisor daemon for schedule:run
-│   ├── 12-horizon.sh          # Horizon + Supervisor + Nginx basic auth
-│   ├── 13-reverb.sh           # Reverb WebSocket + Supervisor + Nginx proxy
-│   ├── 14-octane.sh           # Octane (Swoole/FrankenPHP/RoadRunner) + Nginx proxy
-│   ├── 15-minio.sh            # MinIO S3-compatible storage + Nginx proxy
-│   ├── 16-postgres.sh         # PostgreSQL 15/16/17 with PGTune-style config
-│   ├── 17-meilisearch.sh      # Meilisearch search engine for Laravel Scout
-│   ├── 18-typesense.sh        # Typesense search engine for Laravel Scout
-│   ├── 19-elasticsearch.sh    # Elasticsearch 7/8 + optional Kibana
-│   ├── 20-rabbitmq.sh         # RabbitMQ AMQP message broker
-│   ├── 21-varnish.sh          # Varnish HTTP accelerator in front of Nginx
-│   ├── 22-load-balancer.sh    # Nginx or HAProxy for horizontal scaling
-│   ├── 23-mailpit.sh          # SMTP mail catcher + web UI (staging only)
-│   ├── 24-backups.sh          # DB dump + file backup + S3/rsync + cron
-│   ├── 25-tuning.sh           # sysctl, PHP-FPM pools, Nginx workers, MySQL InnoDB
-│   ├── 26-monitoring.sh       # Netdata real-time metrics + UptimeKuma uptime
-│   ├── 27-phpmyadmin.sh       # phpMyAdmin behind Nginx + HTTP Basic Auth
-│   ├── 28-pgadmin.sh          # pgAdmin 4 behind Nginx proxy
-│   ├── 29-soketi.sh           # Soketi Pusher-compatible WebSocket server
-│   ├── 30-memcached.sh        # Memcached in-memory cache
-│   └── 31-chromium.sh         # Headless Chromium + wkhtmltopdf for PDF/screenshots
+│   ├── preflight.sh           # OS, disk, RAM, port, and network pre-checks
+│   ├── system-init.sh         # OS updates, swap, timezone, hostname
+│   ├── server-hardening.sh    # Deploy user, SSH hardening, UFW, Fail2ban
+│   ├── php.sh                 # PHP 8.2/8.3/8.4 + extensions + Composer + OPcache
+│   ├── nginx.sh               # Nginx + Laravel vhost + gzip + rate limiting
+│   ├── mysql.sh               # MySQL 8.0/8.4/9.2 or MariaDB 10.11/11.4/11.7
+│   ├── redis.sh               # Redis 7.0/7.2/7.4 with auth + persistence + tuning
+│   ├── node.sh                # Node.js 18/20/22 via NVM + optional Yarn/pnpm/Bun
+│   ├── ssl.sh                 # Let's Encrypt via Certbot (Nginx/standalone/DNS)
+│   ├── laravel-app.sh         # Clone repo, .env, composer, migrate, cache, permissions
+│   ├── queue-worker.sh        # Supervisor + queue:work with multi-process config
+│   ├── scheduler.sh           # Cron or Supervisor daemon for schedule:run
+│   ├── horizon.sh             # Horizon + Supervisor + Nginx basic auth
+│   ├── reverb.sh              # Reverb WebSocket + Supervisor + Nginx proxy
+│   ├── octane.sh              # Octane (Swoole/FrankenPHP/RoadRunner) + Nginx proxy
+│   ├── minio.sh               # MinIO S3-compatible storage + Nginx proxy
+│   ├── postgres.sh            # PostgreSQL 15/16/17 with PGTune-style config
+│   ├── meilisearch.sh         # Meilisearch search engine for Laravel Scout
+│   ├── typesense.sh           # Typesense search engine for Laravel Scout
+│   ├── elasticsearch.sh       # Elasticsearch 7/8 + optional Kibana
+│   ├── rabbitmq.sh            # RabbitMQ AMQP message broker
+│   ├── varnish.sh             # Varnish HTTP accelerator in front of Nginx
+│   ├── load-balancer.sh       # Nginx or HAProxy for horizontal scaling
+│   ├── mailpit.sh             # SMTP mail catcher + web UI (staging only)
+│   ├── backups.sh             # DB dump + file backup + S3/rsync + cron
+│   ├── tuning.sh              # sysctl, PHP-FPM pools, Nginx workers, MySQL InnoDB
+│   ├── monitoring.sh          # Netdata real-time metrics + UptimeKuma uptime
+│   ├── phpmyadmin.sh          # phpMyAdmin behind Nginx + HTTP Basic Auth
+│   ├── pgadmin.sh             # pgAdmin 4 behind Nginx proxy
+│   ├── soketi.sh              # Soketi Pusher-compatible WebSocket server
+│   ├── memcached.sh           # Memcached in-memory cache
+│   └── chromium.sh            # Headless Chromium + wkhtmltopdf for PDF/screenshots
 ├── manage/
 │   ├── health.sh              # Service status, ports, disk, RAM, failed jobs
 │   ├── report.sh              # Full stack overview with versions, URLs, SSL
@@ -143,17 +143,17 @@ Flags (placed after command):
 
 ### Module name aliases
 
-Modules support numbers and multiple name aliases:
+Modules support multiple name aliases:
 
 ```
-larakit install php        # or: larakit install 3 / larakit install 03
-larakit install mysql      # or: mariadb / db / 5 / 05
+larakit install php        # or: larakit install php (only name-based aliases)
+larakit install mysql      # or: mariadb / db
 larakit manage firewall    # or: firewall-audit / fwaudit
 ```
 
 ### Adding new items to the CLI
 
-When adding a new module `NN-name.sh`:
+When adding a new module `name.sh`:
 1. Add a case entry in `resolve_module()` in `larakit`
 2. Add an entry in `MODULE_META` associative array
 3. Register in `setup.sh`: `MODULE_FILES[]`, `MODULE_NAMES[]`, `MODULE_CATEGORIES[]`
@@ -309,7 +309,7 @@ value without prompting. This is set by the `--quiet` / `-q` flag via `parse_fla
 ### Dry-run mode
 
 When `DRY_RUN=true` all `run_or_dry()` calls print the command instead of executing it.
-Set by the `--dry-run` / `-n` flag. Test: `DRY_RUN=true bash modules/05-mysql.sh`.
+Set by the `--dry-run` / `-n` flag. Test: `DRY_RUN=true bash modules/mysql.sh`.
 
 ### Nginx config files
 
@@ -460,9 +460,9 @@ docker compose -f docker/docker-compose.yml run larakit
 
 # Inside the container — you're root on a fresh Ubuntu server
 bash setup.sh                    # full wizard
-bash modules/03-php.sh           # single module
+bash modules/php.sh              # single module
 DRY_RUN=true bash setup.sh       # dry run
-LARAKIT_QUIET=true bash modules/05-mysql.sh  # non-interactive
+LARAKIT_QUIET=true bash modules/mysql.sh  # non-interactive
 ```
 
 The repo is mounted live at `/larakit` — edits on your machine appear immediately without rebuilding.

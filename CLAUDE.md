@@ -123,7 +123,7 @@ Add `_src notify.sh` (and the corresponding `source` in the `else` branch) if th
 
 | Thing | Convention |
 |-------|-----------|
-| Installation modules | `NN-kebab-name.sh` (two-digit prefix, in `modules/`) |
+| Installation modules | `kebab-name.sh` (in `modules/`) |
 | Management scripts | `kebab-name.sh` (in `manage/`) |
 | Nginx vhosts | `/etc/nginx/sites-available/<domain>` |
 | Octane Nginx vhost | `/etc/nginx/sites-available/<domain>-octane` |

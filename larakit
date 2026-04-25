@@ -24,38 +24,38 @@ source "${LARAKIT_HOME}/lib/utils.sh"
 
 resolve_module() {
   case "${1,,}" in
-    preflight | pre-flight | 0 | 00) echo "00-preflight.sh" ;;
-    system | init | sysint | 1 | 01) echo "01-system-init.sh" ;;
-    hardening | security | 2 | 02) echo "02-server-hardening.sh" ;;
-    php | 3 | 03) echo "03-php.sh" ;;
-    nginx | 4 | 04) echo "04-nginx.sh" ;;
-    mysql | mariadb | db | 5 | 05) echo "05-mysql.sh" ;;
-    redis | 6 | 06) echo "06-redis.sh" ;;
-    node | nodejs | npm | 7 | 07) echo "07-node.sh" ;;
-    ssl | tls | certbot | 8 | 08) echo "08-ssl.sh" ;;
-    app | laravel | 9 | 09) echo "09-laravel-app.sh" ;;
-    queue | worker | 10) echo "10-queue-worker.sh" ;;
-    scheduler | cron | 11) echo "11-scheduler.sh" ;;
-    horizon | 12) echo "12-horizon.sh" ;;
-    reverb | websocket | ws | 13) echo "13-reverb.sh" ;;
-    octane | 14) echo "14-octane.sh" ;;
-    minio | s3 | 15) echo "15-minio.sh" ;;
-    postgres | postgresql | pg | 16) echo "16-postgres.sh" ;;
-    meilisearch | search | meili | 17) echo "17-meilisearch.sh" ;;
-    typesense | ts | 18) echo "18-typesense.sh" ;;
-    elasticsearch | elastic | es | 19) echo "19-elasticsearch.sh" ;;
-    rabbitmq | rabbit | mq | 20) echo "20-rabbitmq.sh" ;;
-    varnish | 21) echo "21-varnish.sh" ;;
-    lb | loadbalancer | haproxy | 22) echo "22-load-balancer.sh" ;;
-    mailpit | mail | 23) echo "23-mailpit.sh" ;;
-    backups | backup | 24) echo "24-backups.sh" ;;
-    tuning | tune | 25) echo "25-tuning.sh" ;;
-    monitoring | monitor | 26) echo "26-monitoring.sh" ;;
-    phpmyadmin | pma | 27) echo "27-phpmyadmin.sh" ;;
-    pgadmin | 28) echo "28-pgadmin.sh" ;;
-    soketi | pusher | 29) echo "29-soketi.sh" ;;
-    memcached | memcache | 30) echo "30-memcached.sh" ;;
-    chromium | chrome | pdf | wkhtml | 31) echo "31-chromium.sh" ;;
+    preflight | pre-flight) echo "preflight.sh" ;;
+    system | sysint) echo "system-init.sh" ;;
+    hardening | security) echo "server-hardening.sh" ;;
+    php) echo "php.sh" ;;
+    nginx) echo "nginx.sh" ;;
+    mysql | mariadb | db) echo "mysql.sh" ;;
+    redis) echo "redis.sh" ;;
+    node | nodejs | npm) echo "node.sh" ;;
+    ssl | tls | certbot) echo "ssl.sh" ;;
+    app | laravel) echo "laravel-app.sh" ;;
+    queue | worker) echo "queue-worker.sh" ;;
+    scheduler | cron) echo "scheduler.sh" ;;
+    horizon) echo "horizon.sh" ;;
+    reverb | websocket | ws) echo "reverb.sh" ;;
+    octane) echo "octane.sh" ;;
+    minio | s3) echo "minio.sh" ;;
+    postgres | postgresql | pg) echo "postgres.sh" ;;
+    meilisearch | search | meili) echo "meilisearch.sh" ;;
+    typesense | ts) echo "typesense.sh" ;;
+    elasticsearch | elastic | es) echo "elasticsearch.sh" ;;
+    rabbitmq | rabbit | mq) echo "rabbitmq.sh" ;;
+    varnish) echo "varnish.sh" ;;
+    lb | loadbalancer | haproxy) echo "load-balancer.sh" ;;
+    mailpit | mail) echo "mailpit.sh" ;;
+    backups | backup) echo "backups.sh" ;;
+    tuning | tune) echo "tuning.sh" ;;
+    monitoring | monitor) echo "monitoring.sh" ;;
+    phpmyadmin | pma) echo "phpmyadmin.sh" ;;
+    pgadmin) echo "pgadmin.sh" ;;
+    soketi | pusher) echo "soketi.sh" ;;
+    memcached | memcache) echo "memcached.sh" ;;
+    chromium | chrome | pdf | wkhtml) echo "chromium.sh" ;;
     *) echo "" ;;
   esac
 }
@@ -273,7 +273,6 @@ cmd_setup_help() {
   printf "  ${BOLD}%-16s${NC} %s\n" "api" "Headless API stack — no Node.js, Redis queue, tuning"
   printf "  ${BOLD}%-16s${NC} %s\n" "queue-heavy" "Standard + Horizon, extra Redis tuning"
   printf "  ${BOLD}%-16s${NC} %s\n" "full" "Every module"
-  printf "  ${BOLD}%-16s${NC} %s\n" "1 3 9" "Any space-separated module numbers"
   echo
   echo -e "  ${BOLD}Flags${NC}"
   printf "  ${BOLD}%-24s${NC} %s\n" "--dry-run / -n" "Print what would run without executing anything"
@@ -296,8 +295,7 @@ module_help() {
     exit 1
   fi
 
-  local key="${file#??-}" # strip leading "00-"
-  key="${key%.sh}"        # strip ".sh"
+  local key="${file%.sh}" # strip ".sh"
   # find canonical key in MODULE_META
   local meta=""
   for k in "${!MODULE_META[@]}"; do
@@ -382,40 +380,42 @@ manage_help() {
 cmd_list_modules() {
   echo -e "\n  ${BOLD}${CYAN}Installation Modules${NC}  (usage: larakit install <name>)\n"
   local entries=(
-    "00  preflight       Pre-flight checks (OS, disk, RAM, ports)"
-    "01  system          System init — updates, swap, timezone, hostname"
-    "02  hardening       UFW, Fail2ban, SSH hardening"
-    "03  php             PHP 8.2/8.3/8.4 + extensions + Composer"
-    "04  nginx           Nginx vhost, gzip, rate limiting"
-    "05  mysql           MySQL / MariaDB"
-    "06  redis           Redis with auth, persistence, eviction"
-    "07  node            Node.js via NVM"
-    "08  ssl             Let's Encrypt / Certbot"
-    "09  app             Laravel app clone, .env, migrate, permissions"
-    "10  queue           Supervisor queue workers"
-    "11  scheduler       Cron / Supervisor scheduler"
-    "12  horizon         Laravel Horizon + Nginx basic auth"
-    "13  reverb          Laravel Reverb WebSocket server"
-    "14  octane          Laravel Octane (Swoole / FrankenPHP)"
-    "15  minio           MinIO S3-compatible object storage"
-    "16  postgres        PostgreSQL 15/16/17"
-    "17  meilisearch     Meilisearch full-text search (Laravel Scout)"
-    "18  typesense       Typesense fast typo-tolerant search"
-    "19  elasticsearch   Elasticsearch + Kibana"
-    "20  rabbitmq        RabbitMQ AMQP message broker"
-    "21  varnish         Varnish HTTP cache in front of Nginx"
-    "22  lb              Nginx / HAProxy load balancer"
-    "23  mailpit         SMTP mail catcher + web UI"
-    "24  backups         Daily DB + file backups + S3/rsync"
-    "25  tuning          sysctl, PHP-FPM, Nginx, MySQL InnoDB tuning"
-    "26  monitoring      Netdata + UptimeKuma"
-    "27  phpmyadmin      phpMyAdmin web-based MySQL/MariaDB admin"
-    "28  pgadmin         pgAdmin 4 web-based PostgreSQL admin"
+    "preflight|Pre-flight checks (OS, disk, RAM, ports)"
+    "system|System init — updates, swap, timezone, hostname"
+    "hardening|UFW, Fail2ban, SSH hardening, deploy user"
+    "php|PHP 8.2/8.3/8.4 + extensions + Composer + OPcache"
+    "nginx|Nginx vhost, gzip, rate limiting"
+    "mysql|MySQL / MariaDB"
+    "redis|Redis with auth, persistence, eviction"
+    "node|Node.js via NVM + optional Yarn/pnpm/Bun"
+    "ssl|Let's Encrypt / Certbot"
+    "app|Laravel app clone, .env, migrate, permissions"
+    "queue|Supervisor queue workers"
+    "scheduler|Cron / Supervisor scheduler"
+    "horizon|Laravel Horizon + Nginx basic auth"
+    "reverb|Laravel Reverb WebSocket server"
+    "octane|Laravel Octane (Swoole / FrankenPHP)"
+    "minio|MinIO S3-compatible object storage"
+    "postgres|PostgreSQL 15/16/17"
+    "meilisearch|Meilisearch full-text search (Laravel Scout)"
+    "typesense|Typesense fast typo-tolerant search"
+    "elasticsearch|Elasticsearch + Kibana"
+    "rabbitmq|RabbitMQ AMQP message broker"
+    "varnish|Varnish HTTP cache in front of Nginx"
+    "lb|Nginx / HAProxy load balancer"
+    "mailpit|SMTP mail catcher + web UI"
+    "backups|Daily DB + file backups + S3/rsync"
+    "tuning|sysctl, PHP-FPM, Nginx, MySQL InnoDB tuning"
+    "monitoring|Netdata + UptimeKuma"
+    "phpmyadmin|phpMyAdmin web-based MySQL/MariaDB admin"
+    "pgadmin|pgAdmin 4 web-based PostgreSQL admin"
+    "soketi|Soketi Pusher-compatible WebSocket server"
+    "memcached|Memcached in-memory cache"
+    "chromium|Headless Chromium + wkhtmltopdf for PDF/screenshots"
   )
   for e in "${entries[@]}"; do
-    local num="${e:0:2}" rest="${e:4}"
-    local name="${rest%%  *}" desc="${rest#*  }"
-    printf "  ${DIM}%s${NC}  ${BOLD}%-18s${NC} %s\n" "$num" "$name" "$desc"
+    local name="${e%%|*}" desc="${e#*|}"
+    printf "  ${BOLD}%-16s${NC} %s\n" "$name" "$desc"
   done
   echo -e "\n  ${DIM}Run 'larakit install <name> --help' for details on any module.${NC}\n"
 }
@@ -423,41 +423,42 @@ cmd_list_modules() {
 cmd_list_manage() {
   echo -e "\n  ${BOLD}${CYAN}Management Commands${NC}  (usage: larakit manage <name>)\n"
   local entries=(
-    "health          Service statuses, ports, disk, RAM, failed jobs"
-    "report          Full stack overview — versions, URLs, SSL, queue"
-    "deploy          Pull latest code and deploy"
-    "redeploy        Full redeploy with maintenance mode and migrations"
-    "rollback        Revert to previous release"
-    "restart         Restart PHP-FPM, Nginx, queue workers, Horizon"
-
-    "logs            Tail Laravel, Nginx, queue, Horizon, Octane logs"
-    "backup          On-demand database backup"
-    "restore         Restore database from a .sql.gz backup"
-    "renew-ssl       Force Let's Encrypt certificate renewal"
-    "queue           Supervisor worker status, failed jobs, retry/flush"
-    "test-mail       Verify SMTP config or check Mailpit inbox"
-    "env             Generate Laravel .env from saved credentials"
-    "webhook         Set up GitHub/GitLab push webhook auto-deploy"
-    "update          Download latest LaraKit scripts from GitHub"
-    "creds           Display or delete stored credentials"
-    "firewall        Review UFW rules and open ports"
-    "init            Update credentials without reinstalling"
-    "db-optimize     OPTIMIZE TABLE (MySQL) or VACUUM ANALYZE (Postgres)"
-    "perf            Load test with ab or wrk"
-    "diagnose        Health + firewall + SSL check in one shot"
-    "env-check       Compare .env against expected keys"
-    "ssh-keys        Manage authorized_keys for the deploy user"
-    "swap            Add, resize, or remove swap space"
-    "crontab         View and manage application cron entries"
-    "php-ext         Enable or disable PHP extensions"
-
-    "db-copy         Copy database between environments"
-    "logrotate       Configure log rotation for app and Nginx logs"
-    "queue-scale     Adjust Supervisor worker count live"
+    "health|Service statuses, ports, disk, RAM, failed jobs"
+    "report|Full stack overview — versions, URLs, SSL, queue"
+    "deploy|Pull latest code and deploy"
+    "redeploy|Full redeploy with maintenance mode and migrations"
+    "rollback|Revert to previous release"
+    "restart|Restart PHP-FPM, Nginx, queue workers, Horizon"
+    "logs|Tail Laravel, Nginx, queue, Horizon, Octane logs"
+    "backup|On-demand database backup"
+    "restore|Restore database from a .sql.gz backup"
+    "renew-ssl|Force Let's Encrypt certificate renewal"
+    "queue|Supervisor worker status, failed jobs, retry/flush"
+    "test-mail|Verify SMTP config or check Mailpit inbox"
+    "env|Generate Laravel .env from saved credentials"
+    "webhook|Set up GitHub/GitLab push webhook auto-deploy"
+    "update|Download latest LaraKit scripts from GitHub"
+    "creds|Display or delete stored credentials"
+    "firewall|Review UFW rules and open ports"
+    "init|Update credentials without reinstalling"
+    "db-optimize|OPTIMIZE TABLE (MySQL) or VACUUM ANALYZE (Postgres)"
+    "perf|Load test with ab or wrk"
+    "diagnose|Health + firewall + SSL check in one shot"
+    "env-check|Compare .env against expected keys"
+    "ssh-keys|Manage authorized_keys for the deploy user"
+    "swap|Add, resize, or remove swap space"
+    "crontab|View and manage application cron entries"
+    "php-ext|Enable or disable PHP extensions"
+    "db-copy|Copy database between environments"
+    "logrotate|Configure log rotation for app and Nginx logs"
+    "queue-scale|Adjust Supervisor worker count live"
+    "cache-clear|Flush config, route, view, OPcache, and Redis cache"
+    "ssl-info|SSL certificate expiry and chain for all domains"
+    "app-create|Scaffold a new app — directory, vhost, DB, .env"
   )
   for e in "${entries[@]}"; do
-    local name="${e%%  *}" desc="${e#*  }"
-    printf "  ${BOLD}%-18s${NC} %s\n" "$name" "$desc"
+    local name="${e%%|*}" desc="${e#*|}"
+    printf "  ${BOLD}%-14s${NC} %s\n" "$name" "$desc"
   done
   echo -e "\n  ${DIM}Run 'larakit manage <name> --help' for details on any command.${NC}\n"
 }

@@ -79,14 +79,14 @@ done
 
 step "Installing modules..."
 MODULES=(
-  00-preflight.sh 01-system-init.sh 02-server-hardening.sh
-  03-php.sh 04-nginx.sh 05-mysql.sh 06-redis.sh 07-node.sh 08-ssl.sh
-  09-laravel-app.sh 10-queue-worker.sh 11-scheduler.sh
-  12-horizon.sh 13-reverb.sh 14-octane.sh 15-minio.sh 16-postgres.sh
-  17-meilisearch.sh 18-typesense.sh 19-elasticsearch.sh 20-rabbitmq.sh
-  21-varnish.sh 22-load-balancer.sh 23-mailpit.sh 24-backups.sh
-  25-tuning.sh 26-monitoring.sh 27-phpmyadmin.sh 28-pgadmin.sh
-  29-soketi.sh 30-memcached.sh 31-chromium.sh
+  preflight.sh system-init.sh server-hardening.sh
+  php.sh nginx.sh mysql.sh redis.sh node.sh ssl.sh
+  laravel-app.sh queue-worker.sh scheduler.sh
+  horizon.sh reverb.sh octane.sh minio.sh postgres.sh
+  meilisearch.sh typesense.sh elasticsearch.sh rabbitmq.sh
+  varnish.sh load-balancer.sh mailpit.sh backups.sh
+  tuning.sh monitoring.sh phpmyadmin.sh pgadmin.sh
+  soketi.sh memcached.sh chromium.sh
 )
 for f in "${MODULES[@]}"; do
   install_file "modules/${f}"
