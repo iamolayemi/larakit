@@ -117,7 +117,7 @@ fi
 ask_yn ENABLE_AUTO_UPDATES "Enable unattended security updates?" "y"
 if [[ "$ENABLE_AUTO_UPDATES" == "true" ]]; then
   pkg_install unattended-upgrades
-  dpkg-reconfigure -plow unattended-upgrades > /dev/null 2>&1 || true
+  DEBIAN_FRONTEND=noninteractive dpkg-reconfigure -f noninteractive unattended-upgrades < /dev/null > /dev/null 2>&1 || true
   success "Automatic security updates enabled."
 fi
 
