@@ -147,12 +147,15 @@ ask_choice COMPOSER_VERSION "Select Composer version:" \
 COMPOSER_VERSION="${COMPOSER_VERSION%% *}" # strip label, keep e.g. "2.x" / "2.7" / "2.6"
 
 step "Installing Composer..."
-# Download the phar directly — the PHP installer script internally uses PHP's
-# HTTP client which hangs on many VPS providers. curl has proper timeouts.
-# composer-2.phar = latest 2.x; composer-stable.phar = latest stable (same thing today)
+# Use the official versioned phar download URLs — no PHP installer script needed.
+# These are stable URLs published by the Composer team:
+#   https://getcomposer.org/download/latest-stable/composer.phar  (latest 2.x stable)
+#   https://getcomposer.org/download/latest-2.7.x/composer.phar   (latest 2.7.x)
+#   https://getcomposer.org/download/latest-2.6.x/composer.phar   (latest 2.6.x)
 case "$COMPOSER_VERSION" in
-  2.7 | 2.6) COMPOSER_PHAR_URL="https://getcomposer.org/composer-2.phar" ;;
-  *) COMPOSER_PHAR_URL="https://getcomposer.org/composer-stable.phar" ;;
+  2.7) COMPOSER_PHAR_URL="https://getcomposer.org/download/latest-2.7.x/composer.phar" ;;
+  2.6) COMPOSER_PHAR_URL="https://getcomposer.org/download/latest-2.6.x/composer.phar" ;;
+  *) COMPOSER_PHAR_URL="https://getcomposer.org/download/latest-stable/composer.phar" ;;
 esac
 
 if has_cmd composer; then
@@ -160,9 +163,10 @@ if has_cmd composer; then
   info "Composer ${CURRENT_COMPOSER} already installed — replacing with fresh phar..."
 fi
 
-run_or_dry curl -fsSL --max-time 60 --retry 3 --progress-bar "$COMPOSER_PHAR_URL" -o /tmp/composer.phar
+info "Downloading from ${COMPOSER_PHAR_URL}..."
+run_or_dry curl -fsSL --max-time 60 --retry 3 "$COMPOSER_PHAR_URL" -o /tmp/composer.phar
 
-# Sanity-check: phar must be >500KB (a truncated download is ~0 bytes)
+# Sanity-check: phar must be >500KB
 PHAR_SIZE=$(wc -c < /tmp/composer.phar 2> /dev/null || echo 0)
 if [[ "$PHAR_SIZE" -lt 500000 ]]; then
   error "Composer download looks incomplete (${PHAR_SIZE} bytes). Check connectivity."
