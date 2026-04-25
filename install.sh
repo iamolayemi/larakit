@@ -33,6 +33,10 @@ if [[ "$IS_LOCAL" == "true" ]] && [[ -f "${SCRIPT_DIR}/config.sh" ]]; then
   source "${SCRIPT_DIR}/config.sh"
 fi
 
+BOLD='\033[1m'
+GREEN='\033[1;32m'
+NC='\033[0m'
+
 step() { echo -e "\n  \033[34m→\033[0m  $*"; }
 success() { echo -e "  \033[32m✔\033[0m  $*"; }
 error() { echo -e "  \033[31m✘\033[0m  $*" >&2; }
@@ -44,7 +48,7 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 echo
-printf "  \033[1mLaraKit CLI Installer\033[0m\n"
+echo -e "  ${BOLD}LaraKit CLI Installer${NC}"
 echo "  Installing to: ${INSTALL_DIR}"
 echo "  Binary:        ${BIN_PATH}"
 echo
@@ -141,11 +145,11 @@ if has_cmd zsh 2> /dev/null || command -v zsh &> /dev/null; then
 fi
 
 echo
-printf "  \033[1;32m✔  LaraKit CLI installed successfully.\033[0m\n"
+echo -e "  ${GREEN}✔  LaraKit CLI installed successfully.${NC}"
 echo
 info "Reload your shell or run:  source ${COMPLETION_PATH}"
 echo
-printf "  \033[1mTry it:\033[0m\n"
+echo -e "  ${BOLD}Try it:${NC}"
 echo "    larakit help"
 echo "    larakit list"
 echo "    larakit install php"
