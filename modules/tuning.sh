@@ -246,7 +246,7 @@ fi
 # Redis tuning
 if has_cmd redis-cli; then
   step "Tuning Redis for production..."
-  # Already done in module 06, but add latency monitor
+  # Already done in redis module, but add latency monitor
   redis-cli CONFIG SET latency-tracking yes 2> /dev/null || true
   success "Redis production settings verified."
 fi

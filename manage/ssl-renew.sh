@@ -33,7 +33,7 @@ else
 fi
 
 if ! has_cmd certbot; then
-  error "Certbot not installed. Run module 08-ssl.sh first."
+  error "Certbot not installed. Run: larakit install ssl"
   exit 1
 fi
 

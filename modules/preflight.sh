@@ -101,7 +101,7 @@ SWAP_MB=$(free -m | awk '/^Swap:/ {print $2}')
 if [[ "$SWAP_MB" -ge 1024 ]]; then
   check_pass "Swap: ${SWAP_MB}MB configured"
 else
-  check_warn "Swap: ${SWAP_MB}MB — consider adding 1-2GB swap (module 01 can do this)"
+  check_warn "Swap: ${SWAP_MB}MB — consider adding 1-2GB swap (larakit install system or larakit manage swap)"
 fi
 
 echo -e "\n  ${BOLD}Network & Connectivity${NC}"
@@ -122,7 +122,7 @@ fi
 if [[ "$(hostname -f 2> /dev/null || hostname)" != "localhost" ]]; then
   check_pass "Hostname: $(hostname -f 2> /dev/null || hostname)"
 else
-  check_warn "Hostname is 'localhost' — set a real hostname (module 01 handles this)"
+  check_warn "Hostname is 'localhost' — set a real hostname (larakit install system handles this)"
 fi
 
 echo -e "\n  ${BOLD}Port Availability${NC}"
