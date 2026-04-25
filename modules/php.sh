@@ -147,31 +147,31 @@ ask_choice COMPOSER_VERSION "Select Composer version:" \
 COMPOSER_VERSION="${COMPOSER_VERSION%% *}" # strip label, keep e.g. "2.x" / "2.7" / "2.6"
 
 step "Installing Composer..."
+# Download the phar directly — the PHP installer script internally uses PHP's
+# HTTP client which hangs on many VPS providers. curl has proper timeouts.
+# composer-2.phar = latest 2.x; composer-stable.phar = latest stable (same thing today)
+case "$COMPOSER_VERSION" in
+  2.7 | 2.6) COMPOSER_PHAR_URL="https://getcomposer.org/composer-2.phar" ;;
+  *) COMPOSER_PHAR_URL="https://getcomposer.org/composer-stable.phar" ;;
+esac
+
 if has_cmd composer; then
   CURRENT_COMPOSER=$(composer --version 2> /dev/null | awk '{print $3}')
-  info "Composer ${CURRENT_COMPOSER} already installed. Updating..."
-  if [[ "$COMPOSER_VERSION" == "2.x" ]]; then
-    run_or_dry composer self-update --quiet
-  else
-    run_or_dry composer self-update "${COMPOSER_VERSION}" --quiet 2> /dev/null \
-      || run_or_dry composer self-update --quiet
-  fi
-else
-  # Use curl (has timeout + retry) instead of php copy() which hangs indefinitely
-  EXPECTED_CHECKSUM="$(curl -fsSL --max-time 15 https://composer.github.io/installer.sig)"
-  curl -fsSL --max-time 30 --retry 2 https://getcomposer.org/installer -o /tmp/composer-setup.php
-  ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', '/tmp/composer-setup.php');")"
-  if [[ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]]; then
-    error "Composer installer checksum mismatch!"
-    rm -f /tmp/composer-setup.php
-    exit 1
-  fi
-  COMPOSER_VER_FLAG=""
-  [[ "$COMPOSER_VERSION" != "2.x" ]] && COMPOSER_VER_FLAG="--version=${COMPOSER_VERSION}"
-  # shellcheck disable=SC2086
-  run_or_dry php /tmp/composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer $COMPOSER_VER_FLAG
-  rm -f /tmp/composer-setup.php
+  info "Composer ${CURRENT_COMPOSER} already installed — replacing with fresh phar..."
 fi
+
+run_or_dry curl -fsSL --max-time 60 --retry 3 --progress-bar "$COMPOSER_PHAR_URL" -o /tmp/composer.phar
+
+# Sanity-check: phar must be >500KB (a truncated download is ~0 bytes)
+PHAR_SIZE=$(wc -c < /tmp/composer.phar 2> /dev/null || echo 0)
+if [[ "$PHAR_SIZE" -lt 500000 ]]; then
+  error "Composer download looks incomplete (${PHAR_SIZE} bytes). Check connectivity."
+  rm -f /tmp/composer.phar
+  exit 1
+fi
+
+run_or_dry mv /tmp/composer.phar /usr/local/bin/composer
+run_or_dry chmod +x /usr/local/bin/composer
 success "Composer $(composer --version 2> /dev/null | awk '{print $3}') installed."
 
 # Update alternatives (if multiple PHP versions)
