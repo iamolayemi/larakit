@@ -147,41 +147,37 @@ ask_choice COMPOSER_VERSION "Select Composer version:" \
 COMPOSER_VERSION="${COMPOSER_VERSION%% *}" # strip label, keep e.g. "2.x" / "2.7" / "2.6"
 
 step "Installing Composer..."
-# Download from GitHub releases — GitHub is always reachable on VPS servers.
-# getcomposer.org can be blocked/slow on some providers; GitHub is not.
-# GitHub releases URL: github.com/composer/composer/releases/latest/download/composer.phar
+# Use the official PHP installer — getcomposer.org is reachable on this server.
+# We fetch the checksum via curl with a short timeout; skip verification if unreachable.
+# The installer supports --2 (latest 2.x) and --2.2 (2.2 LTS) flags.
 case "$COMPOSER_VERSION" in
-  2.2) COMPOSER_TAG="2.2.25" ;; # latest 2.2 LTS
-  *) COMPOSER_TAG="latest" ;;
+  2.2) COMPOSER_CHANNEL_FLAG="--2.2" ;;
+  *) COMPOSER_CHANNEL_FLAG="" ;;
 esac
-
-if [[ "$COMPOSER_TAG" == "latest" ]]; then
-  COMPOSER_PHAR_URL="https://github.com/composer/composer/releases/latest/download/composer.phar"
-else
-  COMPOSER_PHAR_URL="https://github.com/composer/composer/releases/download/${COMPOSER_TAG}/composer.phar"
-fi
 
 if has_cmd composer; then
   CURRENT_COMPOSER=$(composer --version 2> /dev/null | awk '{print $3}')
-  info "Composer ${CURRENT_COMPOSER} already installed — replacing with fresh phar..."
+  info "Composer ${CURRENT_COMPOSER} already installed — reinstalling..."
 fi
 
-info "Downloading Composer from GitHub releases..."
-run_or_dry curl -fsSL --max-time 60 --retry 3 -L "$COMPOSER_PHAR_URL" -o /tmp/composer.phar
+cd /tmp
+php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
 
-# Sanity-check: phar must be >500KB
-PHAR_SIZE=$(wc -c < /tmp/composer.phar 2> /dev/null || echo 0)
-if [[ "$PHAR_SIZE" -lt 500000 ]]; then
-  error "Composer download looks incomplete (${PHAR_SIZE} bytes). Check connectivity."
-  rm -f /tmp/composer.phar
+# Verify checksum if we can reach the sig endpoint; skip silently if not
+EXPECTED_CHECKSUM="$(curl -fsSL --max-time 10 https://composer.github.io/installer.sig 2> /dev/null || echo '')"
+ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+if [[ -n "$EXPECTED_CHECKSUM" ]] && [[ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]]; then
+  error "Composer installer checksum mismatch — aborting."
+  rm -f /tmp/composer-setup.php
   exit 1
 fi
 
-run_or_dry mv /tmp/composer.phar /usr/local/bin/composer
-run_or_dry chmod +x /usr/local/bin/composer
-# Disable update check on version query to avoid network call
-COMPOSER_NO_INTERACTION=1 COMPOSER_DISABLE_XDEBUG_WARN=1 \
-  success "Composer $(composer --version --no-ansi 2> /dev/null | awk '{print $3}') installed."
+# shellcheck disable=SC2086
+php composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer $COMPOSER_CHANNEL_FLAG
+php -r "unlink('composer-setup.php');"
+cd - > /dev/null
+
+success "Composer $(composer --version --no-ansi 2> /dev/null | awk '{print $3}') installed."
 
 # Update alternatives (if multiple PHP versions)
 update-alternatives --set php "/usr/bin/php${PHP_VERSION}" 2> /dev/null || true
