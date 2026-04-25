@@ -44,7 +44,7 @@ if [[ "$EUID" -ne 0 ]]; then
 fi
 
 echo
-echo "  \033[1mLaraKit CLI Installer\033[0m"
+echo -e "  \033[1mLaraKit CLI Installer\033[0m"
 echo "  Installing to: ${INSTALL_DIR}"
 echo "  Binary:        ${BIN_PATH}"
 echo
@@ -141,11 +141,11 @@ if has_cmd zsh 2> /dev/null || command -v zsh &> /dev/null; then
 fi
 
 echo
-echo "  \033[1;32m✔  LaraKit CLI installed successfully.\033[0m"
+echo -e "  \033[1;32m✔  LaraKit CLI installed successfully.\033[0m"
 echo
 info "Reload your shell or run:  source ${COMPLETION_PATH}"
 echo
-echo "  \033[1mTry it:\033[0m"
+echo -e "  \033[1mTry it:\033[0m"
 echo "    larakit help"
 echo "    larakit list"
 echo "    larakit install php"
