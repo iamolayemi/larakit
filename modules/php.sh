@@ -147,23 +147,27 @@ ask_choice COMPOSER_VERSION "Select Composer version:" \
 COMPOSER_VERSION="${COMPOSER_VERSION%% *}" # strip label, keep e.g. "2.x" / "2.7" / "2.6"
 
 step "Installing Composer..."
-# Use the official versioned phar download URLs — no PHP installer script needed.
-# URLs confirmed from https://getcomposer.org/download/
-#   latest-stable  → current stable release (2.9.x)
-#   latest-2.x     → latest 2.x release
-#   latest-2.2.x   → 2.2 LTS
+# Download from GitHub releases — GitHub is always reachable on VPS servers.
+# getcomposer.org can be blocked/slow on some providers; GitHub is not.
+# GitHub releases URL: github.com/composer/composer/releases/latest/download/composer.phar
 case "$COMPOSER_VERSION" in
-  2.2) COMPOSER_PHAR_URL="https://getcomposer.org/download/latest-2.2.x/composer.phar" ;;
-  *) COMPOSER_PHAR_URL="https://getcomposer.org/download/latest-stable/composer.phar" ;;
+  2.2) COMPOSER_TAG="2.2.25" ;; # latest 2.2 LTS
+  *) COMPOSER_TAG="latest" ;;
 esac
+
+if [[ "$COMPOSER_TAG" == "latest" ]]; then
+  COMPOSER_PHAR_URL="https://github.com/composer/composer/releases/latest/download/composer.phar"
+else
+  COMPOSER_PHAR_URL="https://github.com/composer/composer/releases/download/${COMPOSER_TAG}/composer.phar"
+fi
 
 if has_cmd composer; then
   CURRENT_COMPOSER=$(composer --version 2> /dev/null | awk '{print $3}')
   info "Composer ${CURRENT_COMPOSER} already installed — replacing with fresh phar..."
 fi
 
-info "Downloading from ${COMPOSER_PHAR_URL}..."
-run_or_dry curl -fsSL --max-time 60 --retry 3 "$COMPOSER_PHAR_URL" -o /tmp/composer.phar
+info "Downloading Composer from GitHub releases..."
+run_or_dry curl -fsSL --max-time 60 --retry 3 -L "$COMPOSER_PHAR_URL" -o /tmp/composer.phar
 
 # Sanity-check: phar must be >500KB
 PHAR_SIZE=$(wc -c < /tmp/composer.phar 2> /dev/null || echo 0)
@@ -175,7 +179,9 @@ fi
 
 run_or_dry mv /tmp/composer.phar /usr/local/bin/composer
 run_or_dry chmod +x /usr/local/bin/composer
-success "Composer $(composer --version 2> /dev/null | awk '{print $3}') installed."
+# Disable update check on version query to avoid network call
+COMPOSER_NO_INTERACTION=1 COMPOSER_DISABLE_XDEBUG_WARN=1 \
+  success "Composer $(composer --version --no-ansi 2> /dev/null | awk '{print $3}') installed."
 
 # Update alternatives (if multiple PHP versions)
 update-alternatives --set php "/usr/bin/php${PHP_VERSION}" 2> /dev/null || true
