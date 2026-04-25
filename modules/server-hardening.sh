@@ -97,7 +97,10 @@ sed \
   -e "s/^#*LoginGraceTime .*/LoginGraceTime 30/" \
   "$SSHD_CONF" > "$tmp" && mv "$tmp" "$SSHD_CONF"
 
-systemctl restart sshd
+# Ubuntu 22.04+ uses ssh.service; older distros use sshd.service
+SSH_SVC="ssh"
+systemctl list-units --full --all 2> /dev/null | grep -q "sshd.service" && SSH_SVC="sshd"
+run_or_dry systemctl restart "$SSH_SVC"
 ROOT_STATUS="$([[ "$DISABLE_ROOT_SSH" == "true" ]] && echo "disabled" || echo "enabled")"
 success "SSH hardened (port: ${SSH_PORT}, root login: ${ROOT_STATUS})"
 
