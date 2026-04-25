@@ -94,7 +94,7 @@ assert_exits_zero "larakit install ssl --help" install ssl --help
 assert_exits_zero "larakit install typesense --help" install typesense --help
 assert_exits_zero "larakit install elasticsearch --help" install elasticsearch --help
 assert_exits_zero "larakit install rabbitmq --help" install rabbitmq --help
-assert_exits_zero "larakit install 3 --help" install 3 --help
+assert_exits_zero "larakit install nginx --help" install nginx --help
 
 echo -e "\n${BOLD}Manage --help${NC}"
 assert_exits_zero "larakit manage --help" manage --help
