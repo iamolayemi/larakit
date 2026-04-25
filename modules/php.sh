@@ -138,42 +138,14 @@ systemctl enable "php${PHP_VERSION}-fpm" --quiet
 systemctl restart "php${PHP_VERSION}-fpm"
 success "PHP-FPM configured and running."
 
-# Composer
-ask_choice COMPOSER_VERSION "Select Composer version:" \
-  "2.x (Latest stable — recommended)" \
-  "2.2 (LTS — PHP 7.2+ compatible)" \
-  "2.x (Latest 2.x)"
-
-COMPOSER_VERSION="${COMPOSER_VERSION%% *}" # strip label, keep e.g. "2.x" / "2.7" / "2.6"
-
-step "Installing Composer..."
-# Use the official PHP installer — getcomposer.org is reachable on this server.
-# We fetch the checksum via curl with a short timeout; skip verification if unreachable.
-# The installer supports --2 (latest 2.x) and --2.2 (2.2 LTS) flags.
-case "$COMPOSER_VERSION" in
-  2.2) COMPOSER_CHANNEL_FLAG="--2.2" ;;
-  *) COMPOSER_CHANNEL_FLAG="" ;;
-esac
-
+step "Installing Composer (latest)..."
 if has_cmd composer; then
-  CURRENT_COMPOSER=$(composer --version 2> /dev/null | awk '{print $3}')
-  info "Composer ${CURRENT_COMPOSER} already installed — reinstalling..."
+  info "Composer $(composer --version --no-ansi 2> /dev/null | awk '{print $3}') already installed — reinstalling..."
 fi
 
 cd /tmp
 php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-
-# Verify checksum if we can reach the sig endpoint; skip silently if not
-EXPECTED_CHECKSUM="$(curl -fsSL --max-time 10 https://composer.github.io/installer.sig 2> /dev/null || echo '')"
-ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
-if [[ -n "$EXPECTED_CHECKSUM" ]] && [[ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]]; then
-  error "Composer installer checksum mismatch — aborting."
-  rm -f /tmp/composer-setup.php
-  exit 1
-fi
-
-# shellcheck disable=SC2086
-php composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer $COMPOSER_CHANNEL_FLAG
+php composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer
 php -r "unlink('composer-setup.php');"
 cd - > /dev/null
 
