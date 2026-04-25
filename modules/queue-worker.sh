@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 10 — Queue Worker (Supervisor)
-#  Run standalone: sudo bash modules/10-queue-worker.sh
+#  Module — Queue Worker (Supervisor)
+#  Run standalone: sudo bash modules/queue-worker.sh
 # =============================================================================
 set -euo pipefail
 

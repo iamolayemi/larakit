@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 25 — Performance Tuning
+#  Module — Performance Tuning
 #  Optimizes sysctl, PHP-FPM pools, Nginx workers, and MySQL for production
-#  Run standalone: sudo bash modules/25-tuning.sh
+#  Run standalone: sudo bash modules/tuning.sh
 # =============================================================================
 set -euo pipefail
 

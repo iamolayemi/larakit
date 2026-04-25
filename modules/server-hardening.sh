@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 02 — Server Hardening
+#  Module — Server Hardening
 #  Creates deploy user, hardens SSH, configures UFW & Fail2ban
-#  Run standalone: sudo bash modules/02-server-hardening.sh
+#  Run standalone: sudo bash modules/server-hardening.sh
 # =============================================================================
 set -euo pipefail
 

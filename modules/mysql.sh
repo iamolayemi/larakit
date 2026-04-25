@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 05 — MySQL / MariaDB Database
-#  Run standalone: sudo bash modules/05-mysql.sh
+#  Module — MySQL / MariaDB Database
+#  Run standalone: sudo bash modules/mysql.sh
 # =============================================================================
 set -euo pipefail
 

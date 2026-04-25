@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 24 — Automated Backups (Database + Files)
-#  Run standalone: sudo bash modules/24-backups.sh
+#  Module — Automated Backups (Database + Files)
+#  Run standalone: sudo bash modules/backups.sh
 # =============================================================================
 set -euo pipefail
 

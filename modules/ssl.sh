@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 08 — SSL / TLS via Let's Encrypt (Certbot)
-#  Run standalone: sudo bash modules/08-ssl.sh
+#  Module — SSL / TLS via Let's Encrypt (Certbot)
+#  Run standalone: sudo bash modules/ssl.sh
 # =============================================================================
 set -euo pipefail
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 13 — Laravel Reverb (WebSockets Server)
-#  Run standalone: sudo bash modules/13-reverb.sh
+#  Module — Laravel Reverb (WebSockets Server)
+#  Run standalone: sudo bash modules/reverb.sh
 # =============================================================================
 set -euo pipefail
 

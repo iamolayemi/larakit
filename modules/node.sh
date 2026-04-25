@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 07 — Node.js & npm (via NVM)
-#  Run standalone: sudo bash modules/07-node.sh
+#  Module — Node.js & npm (via NVM)
+#  Run standalone: sudo bash modules/node.sh
 # =============================================================================
 set -euo pipefail
 

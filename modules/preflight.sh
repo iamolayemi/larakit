@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 00 — Pre-flight Checks
+#  Module — Pre-flight Checks
 #  Verifies OS, disk, RAM, and port availability before setup begins.
-#  Run standalone: sudo bash modules/00-preflight.sh
+#  Run standalone: sudo bash modules/preflight.sh
 # =============================================================================
 set -euo pipefail
 

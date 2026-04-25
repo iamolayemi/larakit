@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 18 — Typesense
+#  Module — Typesense
 #  Fast, typo-tolerant search engine — an alternative to Meilisearch for Scout.
-#  Run standalone: sudo bash modules/18-typesense.sh
+#  Run standalone: sudo bash modules/typesense.sh
 # =============================================================================
 set -euo pipefail
 

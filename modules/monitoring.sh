@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 26 — Monitoring & Observability
+#  Module — Monitoring & Observability
 #  Installs Netdata (real-time metrics) + UptimeKuma (uptime monitoring)
-#  Run standalone: sudo bash modules/26-monitoring.sh
+#  Run standalone: sudo bash modules/monitoring.sh
 # =============================================================================
 set -euo pipefail
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 16 — PostgreSQL Database (alternative to MySQL)
-#  Run standalone: sudo bash modules/16-postgres.sh
+#  Module — PostgreSQL Database (alternative to MySQL)
+#  Run standalone: sudo bash modules/postgres.sh
 # =============================================================================
 set -euo pipefail
 

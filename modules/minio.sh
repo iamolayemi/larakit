@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 15 — MinIO Object Storage (S3-compatible)
-#  Run standalone: sudo bash modules/15-minio.sh
+#  Module — MinIO Object Storage (S3-compatible)
+#  Run standalone: sudo bash modules/minio.sh
 # =============================================================================
 set -euo pipefail
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 21 — Varnish Cache
+#  Module — Varnish Cache
 #  HTTP accelerator in front of Nginx for high-traffic sites.
-#  Run standalone: sudo bash modules/21-varnish.sh
+#  Run standalone: sudo bash modules/varnish.sh
 # =============================================================================
 set -euo pipefail
 

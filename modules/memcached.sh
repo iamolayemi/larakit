@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 30 — Memcached
+#  Module — Memcached
 #  In-memory key-value cache — alternative to Redis for pure caching workloads.
-#  Run standalone: sudo bash modules/30-memcached.sh
+#  Run standalone: sudo bash modules/memcached.sh
 # =============================================================================
 set -euo pipefail
 

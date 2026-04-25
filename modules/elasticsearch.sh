@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 19 — Elasticsearch
+#  Module — Elasticsearch
 #  Full-text search engine for Laravel Scout or custom indexing.
-#  Run standalone: sudo bash modules/19-elasticsearch.sh
+#  Run standalone: sudo bash modules/elasticsearch.sh
 # =============================================================================
 set -euo pipefail
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 03 — PHP Installation & Configuration
-#  Run standalone: sudo bash modules/03-php.sh
+#  Module — PHP Installation & Configuration
+#  Run standalone: sudo bash modules/php.sh
 # =============================================================================
 set -euo pipefail
 
@@ -144,24 +144,33 @@ ask_choice COMPOSER_VERSION "Select Composer version:" \
   "2.7 (Stable)" \
   "2.6 (Previous stable)"
 
+COMPOSER_VERSION="${COMPOSER_VERSION%% *}" # strip label, keep e.g. "2.x" / "2.7" / "2.6"
+
 step "Installing Composer..."
 if has_cmd composer; then
   CURRENT_COMPOSER=$(composer --version 2> /dev/null | awk '{print $3}')
   info "Composer ${CURRENT_COMPOSER} already installed. Updating..."
-  composer self-update --quiet
+  if [[ "$COMPOSER_VERSION" == "2.x" ]]; then
+    run_or_dry composer self-update --quiet
+  else
+    run_or_dry composer self-update "${COMPOSER_VERSION}" --quiet 2> /dev/null \
+      || run_or_dry composer self-update --quiet
+  fi
 else
-  EXPECTED_CHECKSUM="$(php -r 'copy("https://composer.github.io/installer.sig", "php://stdout");')"
-  php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-  ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', 'composer-setup.php');")"
+  # Use curl (has timeout + retry) instead of php copy() which hangs indefinitely
+  EXPECTED_CHECKSUM="$(curl -fsSL --max-time 15 https://composer.github.io/installer.sig)"
+  curl -fsSL --max-time 30 --retry 2 https://getcomposer.org/installer -o /tmp/composer-setup.php
+  ACTUAL_CHECKSUM="$(php -r "echo hash_file('sha384', '/tmp/composer-setup.php');")"
   if [[ "$EXPECTED_CHECKSUM" != "$ACTUAL_CHECKSUM" ]]; then
     error "Composer installer checksum mismatch!"
-    rm composer-setup.php
+    rm -f /tmp/composer-setup.php
     exit 1
   fi
-  php composer-setup.php --quiet
-  rm composer-setup.php
-  mv composer.phar /usr/local/bin/composer
-  chmod +x /usr/local/bin/composer
+  COMPOSER_VER_FLAG=""
+  [[ "$COMPOSER_VERSION" != "2.x" ]] && COMPOSER_VER_FLAG="--version=${COMPOSER_VERSION}"
+  # shellcheck disable=SC2086
+  run_or_dry php /tmp/composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer $COMPOSER_VER_FLAG
+  rm -f /tmp/composer-setup.php
 fi
 success "Composer $(composer --version 2> /dev/null | awk '{print $3}') installed."
 

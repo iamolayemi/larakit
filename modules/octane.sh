@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 14 — Laravel Octane (Swoole / FrankenPHP)
-#  Run standalone: sudo bash modules/14-octane.sh
+#  Module — Laravel Octane (Swoole / FrankenPHP)
+#  Run standalone: sudo bash modules/octane.sh
 # =============================================================================
 set -euo pipefail
 

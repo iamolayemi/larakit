@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 11 — Task Scheduler (Cron)
-#  Run standalone: sudo bash modules/11-scheduler.sh
+#  Module — Task Scheduler (Cron)
+#  Run standalone: sudo bash modules/scheduler.sh
 # =============================================================================
 set -euo pipefail
 

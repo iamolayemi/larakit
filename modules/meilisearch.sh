@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 17 — Meilisearch
+#  Module — Meilisearch
 #  Fast, typo-tolerant full-text search engine for Laravel Scout.
-#  Run standalone: sudo bash modules/17-meilisearch.sh
+#  Run standalone: sudo bash modules/meilisearch.sh
 # =============================================================================
 set -euo pipefail
 

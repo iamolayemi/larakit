@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 12 — Laravel Horizon (Redis Queue Dashboard)
-#  Run standalone: sudo bash modules/12-horizon.sh
+#  Module — Laravel Horizon (Redis Queue Dashboard)
+#  Run standalone: sudo bash modules/horizon.sh
 # =============================================================================
 set -euo pipefail
 

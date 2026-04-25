@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 27 — phpMyAdmin
+#  Module — phpMyAdmin
 #  Web-based MySQL/MariaDB administration behind Nginx + HTTP Basic Auth.
-#  Run standalone: sudo bash modules/27-phpmyadmin.sh
+#  Run standalone: sudo bash modules/phpmyadmin.sh
 # =============================================================================
 set -euo pipefail
 

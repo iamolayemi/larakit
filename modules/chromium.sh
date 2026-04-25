@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 31 — Headless Chromium
+#  Module — Headless Chromium
 #  Installs Chromium + wkhtmltopdf for PDF generation and browser automation.
-#  Run standalone: sudo bash modules/31-chromium.sh
+#  Run standalone: sudo bash modules/chromium.sh
 # =============================================================================
 set -euo pipefail
 

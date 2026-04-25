@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 22 — Load Balancer & Horizontal Scaling
+#  Module — Load Balancer & Horizontal Scaling
 #  Sets up Nginx or HAProxy as a load balancer for multiple app servers
-#  Run standalone: sudo bash modules/22-load-balancer.sh
+#  Run standalone: sudo bash modules/load-balancer.sh
 # =============================================================================
 set -euo pipefail
 

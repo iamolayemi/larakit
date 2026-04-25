@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 23 — Mailpit
+#  Module — Mailpit
 #  SMTP mail catcher with web UI. Ideal for staging/dev environments.
-#  Run standalone: sudo bash modules/23-mailpit.sh
+#  Run standalone: sudo bash modules/mailpit.sh
 # =============================================================================
 set -euo pipefail
 

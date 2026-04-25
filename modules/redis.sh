@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 06 — Redis Cache & Sessions
-#  Run standalone: sudo bash modules/06-redis.sh
+#  Module — Redis Cache & Sessions
+#  Run standalone: sudo bash modules/redis.sh
 # =============================================================================
 set -euo pipefail
 

@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 29 — Soketi
+#  Module — Soketi
 #  Self-hosted, Pusher-compatible WebSocket server for Laravel Broadcasting.
-#  Run standalone: sudo bash modules/29-soketi.sh
+#  Run standalone: sudo bash modules/soketi.sh
 # =============================================================================
 set -euo pipefail
 

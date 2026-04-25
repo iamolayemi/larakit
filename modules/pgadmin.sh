@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 28 — pgAdmin 4
+#  Module — pgAdmin 4
 #  Web-based PostgreSQL administration behind Nginx + HTTP Basic Auth.
-#  Run standalone: sudo bash modules/28-pgadmin.sh
+#  Run standalone: sudo bash modules/pgadmin.sh
 # =============================================================================
 set -euo pipefail
 

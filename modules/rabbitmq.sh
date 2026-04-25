@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 20 — RabbitMQ
+#  Module — RabbitMQ
 #  AMQP message broker — alternative queue driver for high-throughput apps.
-#  Run standalone: sudo bash modules/20-rabbitmq.sh
+#  Run standalone: sudo bash modules/rabbitmq.sh
 # =============================================================================
 set -euo pipefail
 

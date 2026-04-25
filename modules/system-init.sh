@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 01 — System Initialization & Updates
-#  Run standalone: sudo bash modules/01-system-init.sh
+#  Module — System Initialization & Updates
+#  Run standalone: sudo bash modules/system-init.sh
 # =============================================================================
 set -euo pipefail
 

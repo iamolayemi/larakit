@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  Module 09 — Laravel Application Deployment
+#  Module — Laravel Application Deployment
 #  Clones the repo, configures .env, runs migrations, sets permissions
-#  Run standalone: sudo bash modules/09-laravel-app.sh
+#  Run standalone: sudo bash modules/laravel-app.sh
 # =============================================================================
 set -euo pipefail
 
