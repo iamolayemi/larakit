@@ -82,18 +82,13 @@ SSH_KEYS_EXIST=false
 [[ -f "/home/${DEPLOY_USER}/.ssh/authorized_keys" ]] && [[ -s "/home/${DEPLOY_USER}/.ssh/authorized_keys" ]] && SSH_KEYS_EXIST=true
 
 echo
-warn "─────────────────────────────────────────────────────────"
-warn "  SSH SAFETY — read before answering the next questions"
-warn "─────────────────────────────────────────────────────────"
+warn "SSH SAFETY — read before answering the next questions"
 if [[ "$CURRENT_USER" == "root" ]]; then
-  warn "  You are logged in as root. Disabling root SSH login"
-  warn "  will prevent you from reconnecting as root."
+  warn "You are logged in as root. Disabling root SSH login will prevent you from reconnecting as root."
 fi
 if [[ "$SSH_KEYS_EXIST" == "false" ]]; then
-  warn "  No SSH keys detected. Disabling password auth"
-  warn "  will lock you out completely."
+  warn "No SSH keys detected. Disabling password auth will lock you out completely."
 fi
-warn "─────────────────────────────────────────────────────────"
 echo
 
 ask SSH_PORT "SSH port" "22"

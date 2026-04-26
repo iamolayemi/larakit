@@ -14,10 +14,10 @@ info() { echo -e "${CYAN}${BOLD}ℹ  ${NC}$*"; }
 success() { echo -e "${GREEN}${BOLD}✔  ${NC}$*"; }
 warn() { echo -e "${YELLOW}${BOLD}⚠  ${NC}$*"; }
 error() { echo -e "${RED}${BOLD}✘  ${NC}$*" >&2; }
-section() { echo -e "\n${BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n${BLUE}${BOLD}  $*${NC}\n${BLUE}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"; }
+section() { echo -e "\n${BLUE}${BOLD}  $*${NC}\n"; }
 step() { echo -e "${BOLD}  →  $*${NC}"; }
 dim() { echo -e "${DIM}     $*${NC}"; }
-divider() { echo -e "${DIM}$(printf '─%.0s' {1..60})${NC}"; }
+divider() { :; }
 
 banner() {
   echo -e "${BLUE}${BOLD}"
