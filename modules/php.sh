@@ -143,10 +143,7 @@ if has_cmd composer; then
   info "Composer $(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-ansi 2> /dev/null | awk '{print $3}') already installed — reinstalling..."
 fi
 
-# Download the phar directly — bypasses the PHP installer script entirely.
-# The installer script downloads the phar via PHP's HTTP client which hangs
-# inside script environments. curl is the only HTTP client that works reliably.
-# GitHub releases mirror is used as it is always accessible.
+# Download the latest Composer phar from GitHub releases
 info "Downloading Composer phar..."
 curl -fsSL --max-time 60 --retry 3 -L \
   "https://github.com/composer/composer/releases/latest/download/composer.phar" \
@@ -162,7 +159,7 @@ update-alternatives --set php "/usr/bin/php${PHP_VERSION}" 2> /dev/null || true
 creds_section "PHP"
 creds_save "PHP_VERSION" "$PHP_VERSION"
 creds_save "PHP_FPM_SOCK" "/run/php/php${PHP_VERSION}-fpm.sock"
-creds_save "COMPOSER_VERSION" "$(composer --version 2> /dev/null | awk '{print $3}')"
+creds_save "COMPOSER_VERSION" "$(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-ansi 2> /dev/null | awk '{print $3}')"
 
 echo
 php -v
