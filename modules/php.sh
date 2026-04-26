@@ -139,18 +139,16 @@ systemctl restart "php${PHP_VERSION}-fpm"
 success "PHP-FPM configured and running."
 
 step "Installing Composer (latest)..."
-if has_cmd composer; then
-  info "Composer $(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-ansi 2> /dev/null | awk '{print $3}') already installed — reinstalling..."
-fi
-
-# Download the latest Composer phar from GitHub releases
 info "Downloading Composer phar..."
 curl -fsSL --max-time 60 --retry 3 -L \
   "https://github.com/composer/composer/releases/latest/download/composer.phar" \
   -o /usr/local/bin/composer
 chmod +x /usr/local/bin/composer
 
-success "Composer $(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-ansi 2> /dev/null | awk '{print $3}') installed."
+# Capture version once — avoid multiple composer invocations
+COMPOSER_VER=$(COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_NO_INTERACTION=1 \
+  composer --version --no-ansi 2> /dev/null | awk '{print $3}')
+success "Composer ${COMPOSER_VER} installed."
 
 # Update alternatives (if multiple PHP versions)
 update-alternatives --set php "/usr/bin/php${PHP_VERSION}" 2> /dev/null || true
@@ -159,9 +157,6 @@ update-alternatives --set php "/usr/bin/php${PHP_VERSION}" 2> /dev/null || true
 creds_section "PHP"
 creds_save "PHP_VERSION" "$PHP_VERSION"
 creds_save "PHP_FPM_SOCK" "/run/php/php${PHP_VERSION}-fpm.sock"
-creds_save "COMPOSER_VERSION" "$(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-ansi 2> /dev/null | awk '{print $3}')"
+creds_save "COMPOSER_VERSION" "$COMPOSER_VER"
 
-echo
-php -v
-echo
 success "PHP module complete."
