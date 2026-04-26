@@ -235,13 +235,14 @@ select_modules() {
     echo -e "  ${MAGENTA}${BOLD}${cat_labels[$cat_idx]}${NC}"
     for i in "${!MODULE_FILES[@]}"; do
       echo "${MODULE_CATEGORIES[$i]}" | grep -qE "${cat_filters[$cat_idx]}" \
-        && printf "  ${BOLD}%2d)${NC} %s\n" "$((i + 1))" "${MODULE_NAMES[$i]}"
+        && printf "  ${BOLD}%-20s${NC} %s\n" "${MODULE_FILES[$i]%.sh}" "${MODULE_NAMES[$i]}"
     done
     echo
   done
-  echo -e "  ${DIM}Shortcuts: all, minimal, standard, postgres, full, api, queue-heavy${NC}\n"
+  echo -e "  ${DIM}Shortcuts: minimal, standard, postgres, api, queue-heavy, full${NC}"
+  echo -e "  ${DIM}Or type module names separated by spaces: php nginx mysql ssl laravel-app${NC}\n"
   local input
-  read -r -p "$(echo -e "  ${YELLOW}?${NC}  Selection (numbers or shortcut): ")" input
+  read -r -p "$(echo -e "  ${YELLOW}?${NC}  Selection (shortcut or module names): ")" input
   SELECTED_MODULES=()
   case "$input" in
     all | full) run_preset_full ;;
@@ -251,9 +252,16 @@ select_modules() {
     api) run_preset_api ;;
     queue-heavy) run_preset_queue_heavy ;;
     *)
-      for idx in $input; do
-        [[ "$idx" =~ ^[0-9]+$ ]] && [[ "$idx" -ge 1 ]] && [[ "$idx" -le "${#MODULE_FILES[@]}" ]] \
-          && SELECTED_MODULES+=("${MODULE_FILES[$((idx - 1))]}") || warn "Skipping invalid: $idx"
+      for name in $input; do
+        local matched=false
+        for i in "${!MODULE_FILES[@]}"; do
+          if [[ "${MODULE_FILES[$i]%.sh}" == "$name" ]]; then
+            SELECTED_MODULES+=("${MODULE_FILES[$i]}")
+            matched=true
+            break
+          fi
+        done
+        [[ "$matched" == "false" ]] && warn "Unknown module: $name"
       done
       ;;
   esac
