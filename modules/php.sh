@@ -143,13 +143,15 @@ if has_cmd composer; then
   info "Composer $(composer --version --no-ansi 2> /dev/null | awk '{print $3}') already installed — reinstalling..."
 fi
 
-cd /tmp
-php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-php composer-setup.php --quiet --install-dir=/usr/local/bin --filename=composer
-php -r "unlink('composer-setup.php');"
-cd - > /dev/null
+# Use curl to download the installer (avoids PHP's HTTP client which can hang
+# in script environments even when php copy() works fine interactively).
+# Only PHP execution is used — no PHP network calls.
+curl -fsSL --max-time 30 --retry 3 https://getcomposer.org/installer -o /tmp/composer-setup.php
+COMPOSER_ALLOW_SUPERUSER=1 php /tmp/composer-setup.php \
+  --quiet --install-dir=/usr/local/bin --filename=composer
+rm -f /tmp/composer-setup.php
 
-success "Composer $(composer --version --no-ansi 2> /dev/null | awk '{print $3}') installed."
+success "Composer $(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-ansi 2> /dev/null | awk '{print $3}') installed."
 
 # Update alternatives (if multiple PHP versions)
 update-alternatives --set php "/usr/bin/php${PHP_VERSION}" 2> /dev/null || true
