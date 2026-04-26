@@ -140,16 +140,18 @@ success "PHP-FPM configured and running."
 
 step "Installing Composer (latest)..."
 if has_cmd composer; then
-  info "Composer $(composer --version --no-ansi 2> /dev/null | awk '{print $3}') already installed — reinstalling..."
+  info "Composer $(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-ansi 2> /dev/null | awk '{print $3}') already installed — reinstalling..."
 fi
 
-# Use curl to download the installer (avoids PHP's HTTP client which can hang
-# in script environments even when php copy() works fine interactively).
-# Only PHP execution is used — no PHP network calls.
-curl -fsSL --max-time 30 --retry 3 https://getcomposer.org/installer -o /tmp/composer-setup.php
-COMPOSER_ALLOW_SUPERUSER=1 php /tmp/composer-setup.php \
-  --quiet --install-dir=/usr/local/bin --filename=composer
-rm -f /tmp/composer-setup.php
+# Download the phar directly — bypasses the PHP installer script entirely.
+# The installer script downloads the phar via PHP's HTTP client which hangs
+# inside script environments. curl is the only HTTP client that works reliably.
+# GitHub releases mirror is used as it is always accessible.
+info "Downloading Composer phar..."
+curl -fsSL --max-time 60 --retry 3 -L \
+  "https://github.com/composer/composer/releases/latest/download/composer.phar" \
+  -o /usr/local/bin/composer
+chmod +x /usr/local/bin/composer
 
 success "Composer $(COMPOSER_ALLOW_SUPERUSER=1 composer --version --no-ansi 2> /dev/null | awk '{print $3}') installed."
 
