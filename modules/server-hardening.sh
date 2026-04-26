@@ -75,9 +75,44 @@ if [[ "$SETUP_SSH_KEY" == "true" ]]; then
 fi
 
 # SSH hardening
+# Safety warnings before changing SSH settings
+CURRENT_USER="$(whoami)"
+SSH_KEYS_EXIST=false
+[[ -f "/root/.ssh/authorized_keys" ]] && [[ -s "/root/.ssh/authorized_keys" ]] && SSH_KEYS_EXIST=true
+[[ -f "/home/${DEPLOY_USER}/.ssh/authorized_keys" ]] && [[ -s "/home/${DEPLOY_USER}/.ssh/authorized_keys" ]] && SSH_KEYS_EXIST=true
+
+echo
+warn "─────────────────────────────────────────────────────────"
+warn "  SSH SAFETY — read before answering the next questions"
+warn "─────────────────────────────────────────────────────────"
+if [[ "$CURRENT_USER" == "root" ]]; then
+  warn "  You are logged in as root. Disabling root SSH login"
+  warn "  will prevent you from reconnecting as root."
+fi
+if [[ "$SSH_KEYS_EXIST" == "false" ]]; then
+  warn "  No SSH keys detected. Disabling password auth"
+  warn "  will lock you out completely."
+fi
+warn "─────────────────────────────────────────────────────────"
+echo
+
 ask SSH_PORT "SSH port" "22"
-ask_yn DISABLE_ROOT_SSH "Disable root SSH login?" "y"
-ask_yn DISABLE_PASSWORD_AUTH "Disable password authentication (use keys only)?" "y"
+
+# Safe defaults: keep root login enabled, keep password auth unless keys exist
+ask_yn DISABLE_ROOT_SSH "Disable root SSH login?" "n"
+if [[ "$SSH_KEYS_EXIST" == "true" ]]; then
+  ask_yn DISABLE_PASSWORD_AUTH "Disable password authentication (use keys only)?" "y"
+else
+  ask_yn DISABLE_PASSWORD_AUTH "Disable password authentication (use keys only)?" "n"
+fi
+
+if [[ "$DISABLE_ROOT_SSH" == "true" ]] && [[ "$CURRENT_USER" == "root" ]]; then
+  warn "Root SSH will be disabled. Make sure you can log in as '${DEPLOY_USER}' before your next session."
+fi
+if [[ "$DISABLE_PASSWORD_AUTH" == "true" ]] && [[ "$SSH_KEYS_EXIST" == "false" ]]; then
+  error "Cannot disable password auth — no SSH keys are configured. Add a key first."
+  DISABLE_PASSWORD_AUTH="false"
+fi
 
 step "Hardening SSH configuration..."
 SSHD_CONF="/etc/ssh/sshd_config"
@@ -106,11 +141,10 @@ success "SSH hardened (port: ${SSH_PORT}, root login: ${ROOT_STATUS})"
 
 creds_save "SSH_PORT" "$SSH_PORT"
 
-# UFW Firewall
+# UFW Firewall — preserve existing rules, just ensure SSH/HTTP/HTTPS are open
 step "Configuring UFW firewall..."
-ufw --force reset > /dev/null 2>&1
-ufw default deny incoming > /dev/null
-ufw default allow outgoing > /dev/null
+ufw default deny incoming > /dev/null 2>&1 || true
+ufw default allow outgoing > /dev/null 2>&1 || true
 ufw allow "${SSH_PORT}/tcp" > /dev/null
 ufw allow 80/tcp > /dev/null
 ufw allow 443/tcp > /dev/null
